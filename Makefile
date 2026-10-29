@@ -34,5 +34,5 @@ apk:
 		CC_aarch64_linux_android="$(NDK_BIN)/aarch64-linux-android24-clang" \
 		AR_aarch64_linux_android="$(NDK_BIN)/llvm-ar" \
 		CFLAGS_aarch64_linux_android="--target=aarch64-none-linux-android24" \
-		$(GRADLE) app:assembleRelease -PreactNativeArchitectures=arm64-v8a -Pwhip.skipR8=true --no-daemon
+		$(GRADLE) app:assembleRelease -PreactNativeArchitectures=arm64-v8a -Pwhip.skipR8=true -Pwhip.previewSigning=false --no-daemon
 	@printf 'APK: %s\n' "$(APK)"
