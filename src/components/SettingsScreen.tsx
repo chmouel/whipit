@@ -599,8 +599,6 @@ export function SettingsSection(props: SettingsSectionProps) {
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-background px-4" style={{ paddingTop: Math.max(top, 16), paddingBottom: Math.max(bottom, 16) }}>
           <Text className="text-lg font-bold text-foreground">{t('settings.customKeyboard')}</Text>
           <Text className="mt-2 text-muted-foreground">{t('settings.editCustomKeyboardCopy')}</Text>
-          <Input accessibilityLabel={t('settings.customKeyboardJson')} className="mt-3 flex-1 font-mono" multiline textAlignVertical="top" autoCapitalize="none" autoCorrect={false} value={keyboardDraft} onChangeText={value => { setKeyboardDraft(value); setKeyboardError(''); }} />
-          {keyboardError ? <Text accessibilityRole="alert" className="mt-2 text-destructive">{keyboardError}</Text> : null}
           <View className="mt-3 flex-row flex-wrap gap-2">
             <Button variant="secondary" onPress={() => { setKeyboardDraft(DEFAULT_CUSTOM_TERMINAL_KEYBOARD); setKeyboardError(''); }}><Text>{t('settings.restoreKeyboardDefault')}</Text></Button>
             <Button variant="secondary" onPress={() => setKeyboardEditorOpen(false)}><Text>{t('common.cancel')}</Text></Button>
@@ -612,6 +610,8 @@ export function SettingsSection(props: SettingsSectionProps) {
               } catch (error) { setKeyboardError(error instanceof Error ? error.message : String(error)); }
             }}><Text>{t('common.save')}</Text></Button>
           </View>
+          <Input accessibilityLabel={t('settings.customKeyboardJson')} className="mt-3 flex-1 font-mono" multiline textAlignVertical="top" autoCapitalize="none" autoCorrect={false} value={keyboardDraft} onChangeText={value => { setKeyboardDraft(value); setKeyboardError(''); }} />
+          {keyboardError ? <Text accessibilityRole="alert" className="mt-2 text-destructive">{keyboardError}</Text> : null}
         </KeyboardAvoidingView>
       </Modal>
       <TerminalHistoryManager
