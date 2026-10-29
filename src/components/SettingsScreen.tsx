@@ -20,6 +20,7 @@ import {
 import { deviceLanguage } from '@/src/i18n';
 import { useSectionExpansion } from '@/src/hooks/useSectionExpansion';
 import { terminalFontFamily } from '@/src/lib/terminalFonts';
+import { DEFAULT_CUSTOM_TERMINAL_KEYBOARD, parseTerminalKeyboard } from '@/src/lib/terminalKeyboard';
 import {
   APP_FONT_SIZE_STEP_PERCENT,
   MAX_APP_FONT_SIZE_PERCENT,
@@ -233,6 +234,9 @@ export function SettingsSection(props: SettingsSectionProps) {
   const [doubleTapExpanded, setDoubleTapExpanded] = useState(false);
   const [volumeKeyEditor, setVolumeKeyEditor] = useState<TerminalVolumeKey | null>(null);
   const [historyManagerOpen, setHistoryManagerOpen] = useState(false);
+  const [keyboardEditorOpen, setKeyboardEditorOpen] = useState(false);
+  const [keyboardDraft, setKeyboardDraft] = useState('');
+  const [keyboardError, setKeyboardError] = useState('');
   const { t } = useTranslation();
   const appBackground = useBackgroundImageActions({
     uri: props.appBackgroundImageUri,
@@ -464,6 +468,8 @@ export function SettingsSection(props: SettingsSectionProps) {
         />
         <SettingRow title={t('settings.keepScreenOn')} copy={t('settings.keepScreenOnCopy')} value={props.keepScreenOn} onChange={props.onKeepScreenOnChange} divided />
         <SettingRow title={t('settings.reopenTerminal')} copy={t('settings.reopenTerminalCopy')} value={props.reopenTerminalOnLaunch} onChange={props.onReopenTerminalOnLaunchChange} divided />
+        <SettingRow title={t('settings.customKeyboard')} copy={t('settings.customKeyboardCopy')} value={props.terminalPreferences.customKeyboardEnabled} onChange={value => props.onTerminalPreferencesChange({ ...props.terminalPreferences, customKeyboardEnabled: value })} divided />
+        <ActionRow title={t('settings.editCustomKeyboard')} copy={t('settings.editCustomKeyboardCopy')} icon={Code2} onPress={() => { setKeyboardDraft(props.terminalPreferences.customKeyboardLayout); setKeyboardError(''); setKeyboardEditorOpen(true); }} divided />
         <SettingRow title={t('settings.useModifierKeyIcons')} copy={t('settings.useModifierKeyIconsCopy')} value={props.terminalPreferences.useModifierKeyIcons} onChange={value => props.onTerminalPreferencesChange({ ...props.terminalPreferences, useModifierKeyIcons: value })} divided />
         <ActionRow
           title={t('settings.terminalHistory')}
@@ -588,6 +594,25 @@ export function SettingsSection(props: SettingsSectionProps) {
           setVolumeKeyEditor(null);
         }}
       /> : null}
+      <Modal animationType="slide" visible={keyboardEditorOpen} onRequestClose={() => setKeyboardEditorOpen(false)}>
+        <View className="flex-1 bg-background px-4 pt-12 pb-4">
+          <Text className="text-lg font-bold text-foreground">{t('settings.customKeyboard')}</Text>
+          <Text className="mt-2 text-muted-foreground">{t('settings.editCustomKeyboardCopy')}</Text>
+          <Input accessibilityLabel={t('settings.customKeyboardJson')} className="mt-3 flex-1 font-mono" multiline textAlignVertical="top" autoCapitalize="none" autoCorrect={false} value={keyboardDraft} onChangeText={value => { setKeyboardDraft(value); setKeyboardError(''); }} />
+          {keyboardError ? <Text accessibilityRole="alert" className="mt-2 text-destructive">{keyboardError}</Text> : null}
+          <View className="mt-3 flex-row flex-wrap gap-2">
+            <Button variant="secondary" onPress={() => { setKeyboardDraft(DEFAULT_CUSTOM_TERMINAL_KEYBOARD); setKeyboardError(''); }}><Text>{t('settings.restoreKeyboardDefault')}</Text></Button>
+            <Button variant="secondary" onPress={() => setKeyboardEditorOpen(false)}><Text>{t('common.cancel')}</Text></Button>
+            <Button onPress={() => {
+              try {
+                parseTerminalKeyboard(keyboardDraft);
+                props.onTerminalPreferencesChange({ ...props.terminalPreferences, customKeyboardLayout: keyboardDraft });
+                setKeyboardEditorOpen(false);
+              } catch (error) { setKeyboardError(error instanceof Error ? error.message : String(error)); }
+            }}><Text>{t('common.save')}</Text></Button>
+          </View>
+        </View>
+      </Modal>
       <TerminalHistoryManager
         entries={props.terminalHistory}
         visible={historyManagerOpen}

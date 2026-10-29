@@ -91,6 +91,7 @@ import {
   type TerminalControlId,
   type TerminalControlUsage,
 } from '../lib/terminalControls';
+import { keyboardControls, keyboardSequences, keyboardSymbols, parseTerminalKeyboard, type KeyboardItem } from '../lib/terminalKeyboard';
 import { OfflineTerminalBackend } from '../lib/offlineTerminalBackend';
 import {
   directTerminalKeyboardEnabled,
@@ -482,6 +483,12 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
     useEffect(() => {
       renderer.current?.setInputModifiers(ctrl !== 'off' || alt !== 'off' || shift !== 'off');
     }, [activeTarget?.key, alt, ctrl, ready, shift]);
+    const [snippetsOpen, setSnippetsOpen] = useState(false);
+    const [startVoice, setStartVoice] = useState(false);
+    const customLayout = useMemo(() => {
+      if (!preferences.customKeyboardEnabled) return null;
+      try { return parseTerminalKeyboard(preferences.customKeyboardLayout); } catch { return null; }
+    }, [preferences.customKeyboardEnabled, preferences.customKeyboardLayout]);
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchCase, setSearchCase] = useState(false);
@@ -1058,6 +1065,12 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
       },
       onError: reason => setError(t(`terminal.voice.error.${reason}`)),
     });
+    useEffect(() => {
+      if (startVoice && composeOpen && !speechInput.disabled) {
+        setStartVoice(false);
+        speechInput.toggle();
+      }
+    }, [startVoice, composeOpen, speechInput]);
     const voiceLabel = t(speechInput.phase === 'idle' ? 'terminal.voice.start'
       : speechInput.phase === 'listening' ? 'terminal.voice.stop' : `terminal.voice.${speechInput.phase}`);
 
@@ -1967,8 +1980,9 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
               onReady={() => {
                 setReady(true);
               }}
-              onInput={async (target, data) => {
-                await sendInput(data, target, true);
+              onInput={async (target, data, raw) => {
+                if (raw) await writeInput(data, target);
+                else await sendInput(data, target, true);
               }}
               onScroll={(target, direction, lines) => {
                 if (target.key === activeTarget?.key) {
@@ -2238,23 +2252,38 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
             );
           }}
         >
-          <ScrollView
-            horizontal
-            keyboardShouldPersistTaps="always"
-            showsHorizontalScrollIndicator={false}
-            className="flex-grow-0"
-            contentContainerClassName="items-center gap-[5px] px-1.5 pt-[7px]"
-            contentContainerStyle={{ paddingBottom: 7 + bottomSafeAreaInset }}
-          >
-            {controlOrder
-              .filter(control =>
-                terminalControlIsVisible(
-                  control,
-                  keyboardVisible,
-                ),
-              )
-              .map(renderTerminalControl)}
-          </ScrollView>
+          {customLayout ? customLayout.map((row, rowIndex) => (
+            <ScrollView
+              key={rowIndex}
+              horizontal
+              keyboardShouldPersistTaps="always"
+              showsHorizontalScrollIndicator={false}
+              className="flex-grow-0"
+              contentContainerClassName="items-center gap-[5px] px-1.5 pt-[7px]"
+              contentContainerStyle={{ paddingBottom: rowIndex === 1 ? 7 + bottomSafeAreaInset : 0 }}
+            >
+              {row.map((item, index) => {
+                const key = `${rowIndex}-${index}`;
+                if (typeof item !== 'string') return <TerminalKey key={key} label={item.label} onPress={() => renderer.current?.input(item.send, true)} />;
+                if (keyboardControls[item]) return <View key={key}>{renderTerminalControl(keyboardControls[item])}</View>;
+                if (keyboardSymbols[item]) return <TerminalKey key={key} label={keyboardSymbols[item]} symbolic onPress={() => { reportBackgroundFailure(sendInput(keyboardSymbols[item]), TERMINAL_INPUT_CONTEXT); }} />;
+                if (keyboardSequences[item]) return <TerminalKey key={key} label={keyboardSequences[item][0]} onPress={() => { reportBackgroundFailure(sendInput(keyboardSequences[item][1]), TERMINAL_INPUT_CONTEXT); }} />;
+                if (item === 'snippets') return <TerminalKey key={key} label={t('terminal.snippets')} onPress={() => setSnippetsOpen(true)} />;
+                return <TerminalKey key={key} label={t('terminal.voice.keyboard')} onPress={() => { if (!composeOpen) { openCompose(); setStartVoice(true); } else speechInput.toggle(); }} />;
+              })}
+            </ScrollView>
+          )) : (
+            <ScrollView
+              horizontal
+              keyboardShouldPersistTaps="always"
+              showsHorizontalScrollIndicator={false}
+              className="flex-grow-0"
+              contentContainerClassName="items-center gap-[5px] px-1.5 pt-[7px]"
+              contentContainerStyle={{ paddingBottom: 7 + bottomSafeAreaInset }}
+            >
+              {controlOrder.filter(control => terminalControlIsVisible(control, keyboardVisible)).map(renderTerminalControl)}
+            </ScrollView>
+          )}
         </Animated.View>
         {visible && composeOpen && composeExpanded && (
           <Modal
@@ -2350,6 +2379,19 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
             </GlassOverlayHost>
           </Modal>
         )}
+        <Modal animationType="fade" transparent visible={snippetsOpen} onRequestClose={() => setSnippetsOpen(false)}>
+          <View className="flex-1 justify-end bg-black/50">
+            <Pressable accessibilityLabel={t('common.close')} className="flex-1" onPress={() => setSnippetsOpen(false)} />
+            <GlassSurface className="rounded-t-3xl px-4 pt-4" style={{ paddingBottom: Math.max(16, bottomSafeAreaInset) }}>
+              <Text className="text-lg font-bold text-foreground">{t('terminal.snippets')}</Text>
+              <ScrollView className="max-h-[420px]" keyboardShouldPersistTaps="always">
+                {customLayout?.flat().filter((item): item is Exclude<KeyboardItem, string> => typeof item !== 'string').map((item, index) => (
+                  <Button key={index} variant="ghost" className="justify-start" onPress={() => { setSnippetsOpen(false); renderer.current?.input(item.send, true); }}><Text>{item.label}</Text></Button>
+                ))}
+              </ScrollView>
+            </GlassSurface>
+          </View>
+        </Modal>
         <Modal
           animationType="fade"
           onRequestClose={() => setHistoryOpen(false)}
@@ -2627,7 +2669,7 @@ function TerminalKey({
 }) {
   return (
     <TerminalControlButton
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={accessibilityLabel || label}
       className={
         icon || symbolic
           ? TERMINAL_ICON_CONTROL_CLASS

@@ -173,6 +173,8 @@ const props: Props = {
   compact: true,
   preferences: {
     fullscreen: true,
+    customKeyboardEnabled: false,
+    customKeyboardLayout: '[[], []]',
     useModifierKeyIcons: false,
     volumeUpAction: 'none',
     volumeDownAction: 'none',
@@ -1271,4 +1273,19 @@ test('tab switching with an open direct keyboard preserves geometry and hides ch
   expect(Keyboard.dismiss).not.toHaveBeenCalled();
   expect(onControlBarHeightChange).not.toHaveBeenCalled();
   expect(renderer.root.findByProps({ className: 'absolute inset-x-0 bottom-0 z-30' }).props.style.transform[0].translateY).toBe(-keyboardHeight);
+});
+
+
+test('custom macros bypass modifiers while built-in keys retain modifier behavior', async () => {
+  const writeToTerminal = jest.fn(async () => undefined);
+  const activeTarget = { ...target, client: { terminal: { writeToTerminal } } } as unknown as Props['targets'][number];
+  mount({ activeTarget, targets: [activeTarget], preferences: { ...props.preferences, customKeyboardEnabled: true, customKeyboardLayout: '[["ctrl",{"label":"TC","send":"`c"}],["tab"]]' } });
+  await press('ctrlModifier');
+  const macro = renderer.root.find(node => String(node.type) === 'Button' && node.props.accessibilityLabel === 'TC');
+  await act(async () => macro.props.onPress());
+  expect(terminalHandle.input).toHaveBeenLastCalledWith('`c', true);
+  await act(async () => ui('TerminalRendererHost').props.onInput(activeTarget, '`c', true));
+  expect(writeToTerminal).toHaveBeenCalledWith('terminal-1', '`c');
+  await act(async () => ui('TerminalRendererHost').props.onInput(activeTarget, 'c', false));
+  expect(writeToTerminal).toHaveBeenLastCalledWith('terminal-1', '\u0003');
 });

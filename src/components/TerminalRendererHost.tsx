@@ -212,7 +212,7 @@ export interface TerminalRendererHandle {
   clearSearch: () => void;
   fit: () => void;
   focus: () => void;
-  input: (data: string) => boolean;
+  input: (data: string, raw?: boolean) => boolean;
   paste: (data: string) => void;
   readContext: () => Promise<string>;
   retry: () => void;
@@ -242,7 +242,7 @@ interface Props {
   offlineScroll?: PaneScrollInfo;
   style?: StyleProp<ViewStyle>;
   onReady?: () => void;
-  onInput: (target: TerminalRenderTarget, data: string) => void | Promise<void>;
+  onInput: (target: TerminalRenderTarget, data: string, raw?: boolean) => void | Promise<void>;
   onScroll: (target: TerminalRenderTarget, direction: 'up' | 'down', lines: number) => void;
   onScrollActivity?: (target: TerminalRenderTarget, scrolling: boolean) => void;
   onOfflineScroll: (target: TerminalRenderTarget, scroll: PaneScrollInfo) => void;
@@ -950,14 +950,14 @@ export const TerminalRendererHost = forwardRef<TerminalRendererHandle, Props>(fu
     }).finally(() => endAppPerformanceTrace(coldWaitTrace));
   }, [cancelResumeScroll, connectEntry, waitForWritable]);
 
-  const reportQueuedInput = useCallback((entry: RendererEntry, data: string) => {
+  const reportQueuedInput = useCallback((entry: RendererEntry, data: string, raw = false) => {
     const target = entry.target.session.status === 'connected'
       ? entry.target
       : {
           ...entry.target,
           session: { ...entry.target.session, status: 'connected' as const },
         };
-    return reportInput(target, data);
+    return raw ? reportInput(target, data, true) : reportInput(target, data);
   }, []);
 
   // Every external edit crosses a UI-thread barrier before entering the same
@@ -1066,12 +1066,12 @@ export const TerminalRendererHost = forwardRef<TerminalRendererHandle, Props>(fu
     },
     fit: () => activeCall('herdrFit'),
     focus: focusInput,
-    input: data => {
+    input: (data, raw = false) => {
       const key = activeKey.current;
       const entry = key ? entries.current.get(key) : null;
       if (!entry) return false;
       if (
-        entry.target.session.status !== 'connected'
+        !raw && entry.target.session.status !== 'connected'
         && !entry.arbitration.state.yielded
         && entry.arbitration.state.consecutiveDisplacements === 0
         && isOfflineTerminalNavigationInput(data)
@@ -1079,7 +1079,7 @@ export const TerminalRendererHost = forwardRef<TerminalRendererHandle, Props>(fu
         activeCall('herdrOfflineInput', [data]);
         return true;
       }
-      afterNativeInput(() => enqueueInput(entry, () => reportQueuedInput(entry, data))).catch(
+      afterNativeInput(() => enqueueInput(entry, () => reportQueuedInput(entry, data, raw))).catch(
         reason => reportError(entry.target, String(reason)),
       );
       return true;

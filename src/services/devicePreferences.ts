@@ -16,6 +16,7 @@ import {
   type TerminalDoubleTapAction,
 } from '../lib/terminalDoubleTap';
 import { parseTerminalControlUsage, type TerminalControlUsage } from '../lib/terminalControls';
+import { DEFAULT_CUSTOM_TERMINAL_KEYBOARD, parseTerminalKeyboard } from '../lib/terminalKeyboard';
 import {
   parseTerminalVolumeKeyAction,
   type TerminalVolumeKeyAction,
@@ -58,6 +59,8 @@ export type AgentAlertLevel = (typeof agentAlertLevels)[number];
 
 export interface TerminalPreferences {
   fullscreen: boolean;
+  customKeyboardEnabled: boolean;
+  customKeyboardLayout: string;
   useModifierKeyIcons: boolean;
   volumeUpAction: TerminalVolumeKeyAction;
   volumeDownAction: TerminalVolumeKeyAction;
@@ -128,6 +131,8 @@ export const defaultDevicePreferences: DevicePreferences = {
   lastTab: 'hosts',
   terminal: {
     fullscreen: true,
+    customKeyboardEnabled: false,
+    customKeyboardLayout: DEFAULT_CUSTOM_TERMINAL_KEYBOARD,
     useModifierKeyIcons: false,
     volumeUpAction: 'none',
     volumeDownAction: 'none',
@@ -308,6 +313,8 @@ function parseDevicePreferences(
         fullscreen: typeof terminal.fullscreen === 'boolean'
           ? terminal.fullscreen
           : defaultDevicePreferences.terminal.fullscreen,
+        customKeyboardEnabled: terminal.customKeyboardEnabled === true,
+        customKeyboardLayout: validKeyboardLayout(terminal.customKeyboardLayout),
         useModifierKeyIcons: terminal.useModifierKeyIcons === true,
         volumeUpAction: parseTerminalVolumeKeyAction(
           terminal.volumeUpAction,
@@ -402,4 +409,11 @@ function isAgentAlertLevel(value: unknown): value is AgentAlertLevel {
 
 function isLanguagePreference(value: unknown): value is LanguagePreference {
   return value === 'system' || value === 'en' || value === 'zh-Hant' || value === 'zh-Hans' || value === 'ja' || value === 'es' || value === 'fr';
+}
+
+function validKeyboardLayout(value: unknown): string {
+  if (typeof value === 'string') {
+    try { parseTerminalKeyboard(value); return value; } catch { return DEFAULT_CUSTOM_TERMINAL_KEYBOARD; }
+  }
+  return DEFAULT_CUSTOM_TERMINAL_KEYBOARD;
 }
