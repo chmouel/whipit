@@ -2382,7 +2382,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
         <Modal animationType="fade" transparent visible={snippetsOpen} onRequestClose={() => setSnippetsOpen(false)}>
           <View className="flex-1 justify-end bg-black/50">
             <Pressable accessibilityLabel={t('common.close')} className="flex-1" onPress={() => setSnippetsOpen(false)} />
-            <GlassSurface className="rounded-t-3xl px-4 pt-4" style={{ paddingBottom: Math.max(16, bottomSafeAreaInset) }}>
+            <GlassSurface {...APP_FROSTED_GLASS_SURFACE_PROPS} className="rounded-t-3xl px-4 pt-4" fallbackClassName="bg-background" style={{ paddingBottom: Math.max(16, bottomSafeAreaInset) }}>
               <Text className="text-lg font-bold text-foreground">{t('terminal.snippets')}</Text>
               <ScrollView className="max-h-[420px]" keyboardShouldPersistTaps="always">
                 {customLayout?.flat().filter((item): item is Exclude<KeyboardItem, string> => typeof item !== 'string').map((item, index) => (

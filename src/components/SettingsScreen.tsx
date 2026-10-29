@@ -2,7 +2,7 @@ import Slider from '@react-native-community/slider';
 import { BellRing, Bot, CaseSensitive, Check, ChevronDown, ChevronRight, ChevronUp, Code2, Fingerprint, Gamepad2, History, Image as ImageIcon, ImagePlus, Info, KeyRound, Minus, Monitor, Moon, Palette, Play, Plus, Server, ShieldCheck, SquareTerminal, Sun, Trash2, Volume1, Volume2, X, type LucideIcon } from 'lucide-react-native';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import Clipboard from '@react-native-clipboard/clipboard';
-import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type ViewInstance } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type ViewInstance } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -224,6 +224,7 @@ function useBackgroundImageActions({
 }
 
 export function SettingsSection(props: SettingsSectionProps) {
+  const { top, bottom } = useSafeAreaInsets();
   const { expanded: notificationsExpanded, toggleExpanded: toggleNotifications } = useSectionExpansion('notifications', true);
   const { expanded: securityExpanded, toggleExpanded: toggleSecurity } = useSectionExpansion('security', true);
   const { expanded: appearanceExpanded, toggleExpanded: toggleAppearance } = useSectionExpansion('appearance', true);
@@ -595,7 +596,7 @@ export function SettingsSection(props: SettingsSectionProps) {
         }}
       /> : null}
       <Modal animationType="slide" visible={keyboardEditorOpen} onRequestClose={() => setKeyboardEditorOpen(false)}>
-        <View className="flex-1 bg-background px-4 pt-12 pb-4">
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-background px-4" style={{ paddingTop: Math.max(top, 16), paddingBottom: Math.max(bottom, 16) }}>
           <Text className="text-lg font-bold text-foreground">{t('settings.customKeyboard')}</Text>
           <Text className="mt-2 text-muted-foreground">{t('settings.editCustomKeyboardCopy')}</Text>
           <Input accessibilityLabel={t('settings.customKeyboardJson')} className="mt-3 flex-1 font-mono" multiline textAlignVertical="top" autoCapitalize="none" autoCorrect={false} value={keyboardDraft} onChangeText={value => { setKeyboardDraft(value); setKeyboardError(''); }} />
@@ -611,7 +612,7 @@ export function SettingsSection(props: SettingsSectionProps) {
               } catch (error) { setKeyboardError(error instanceof Error ? error.message : String(error)); }
             }}><Text>{t('common.save')}</Text></Button>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
       <TerminalHistoryManager
         entries={props.terminalHistory}

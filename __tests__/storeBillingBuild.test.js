@@ -63,3 +63,19 @@ test('EAS production iOS resolves native billing without a Test Store fallback',
     revenueCatTestPublicSdkKey: null,
   });
 });
+
+test.each([
+  ['', '1', true],
+  ['google-play', '1', false],
+  ['', '', false],
+])('personal build flag is isolated from store channel %s', (channel, personal, expected) => {
+  const result = spawnSync(process.execPath, ['-e',
+    'console.log(JSON.stringify(require("./app.config.js")({config: {}}).extra.personalBuild))',
+  ], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, WHIP_DISTRIBUTION_CHANNEL: channel, WHIP_PERSONAL_BUILD: personal },
+  });
+  expect(result.status).toBe(0);
+  expect(JSON.parse(result.stdout)).toBe(expected);
+});
