@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import { ChatSearchBar } from './ChatSearchBar';
 import { EMPTY_TERMINAL_SEARCH } from '../lib/terminalSearch';
 import {
@@ -2268,6 +2269,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
                 if (keyboardControls[item]) return <View key={key}>{renderTerminalControl(keyboardControls[item])}</View>;
                 if (keyboardSymbols[item]) return <TerminalKey key={key} label={keyboardSymbols[item]} symbolic onPress={() => { reportBackgroundFailure(sendInput(keyboardSymbols[item]), TERMINAL_INPUT_CONTEXT); }} />;
                 if (keyboardSequences[item]) return <TerminalKey key={key} label={keyboardSequences[item][0]} onPress={() => { reportBackgroundFailure(sendInput(keyboardSequences[item][1]), TERMINAL_INPUT_CONTEXT); }} />;
+                if (isPersonalBuild() && (item === 'voice_kb' || item === 'voice_input')) return null;
                 if (item === 'snippets') return <TerminalKey key={key} label={t('terminal.snippets')} onPress={() => setSnippetsOpen(true)} />;
                 return <TerminalKey key={key} label={t('terminal.voice.keyboard')} onPress={() => { if (!composeOpen) { openCompose(); setStartVoice(true); } else speechInput.toggle(); }} />;
               })}
@@ -2360,7 +2362,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
                   >
                     <Paperclip size={19} color={colors.text} />
                   </Button>
-                  <ComposerVoiceButton
+                  {!isPersonalBuild() && <ComposerVoiceButton
                     accessibilityLabel={voiceLabel}
                     className="size-10 rounded-full px-0"
                     variant="ghost"
@@ -2368,7 +2370,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
                     onPress={speechInput.toggle}
                     phase={speechInput.phase}
                     iconColor={speechInput.phase === 'listening' ? appColors.primary : colors.text}
-                  />
+                  />}
                   <Text className="ml-auto px-2 font-mono text-[9px] text-terminal-muted">
                     {t('terminal.composeCharacterCount', {
                       count: composer.text.length.toLocaleString(),

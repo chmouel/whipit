@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import {
   useCallback,
   useEffect,
@@ -1847,7 +1848,7 @@ export function SessionScreen({
                         <AgentChatView
                           state={activeSavedChat.state}
                           savedSearchNamespace={hostSessionId}
-                          readAloud={chatReadAloud}
+                          readAloud={isPersonalBuild() ? undefined : chatReadAloud}
                           imageClient={client ?? undefined}
                           agent={activeSavedChat.agent}
                           agentStatus="idle"
@@ -1900,7 +1901,7 @@ export function SessionScreen({
                                   state={chatView.state}
                                   searchRuntime={chatClient?.native}
                                   searchKey={chatView.binding.transcriptKey}
-                                  readAloud={active ? chatReadAloud : undefined}
+                                  readAloud={active && !isPersonalBuild() ? chatReadAloud : undefined}
                                   imageClient={chatClient}
                                   active={active}
                                   savedViewport={viewportRetention.snapshots.get(

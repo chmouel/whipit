@@ -1,3 +1,4 @@
+jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: null } }));
 import { useContext, useImperativeHandle, type ComponentProps, type ReactNode, type Ref } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import * as Haptics from 'expo-haptics';
@@ -1288,4 +1289,15 @@ test('custom macros bypass modifiers while built-in keys retain modifier behavio
   expect(writeToTerminal).toHaveBeenCalledWith('terminal-1', '`c');
   await act(async () => ui('TerminalRendererHost').props.onInput(activeTarget, 'c', false));
   expect(writeToTerminal).toHaveBeenLastCalledWith('terminal-1', '\u0003');
+});
+
+
+test('personal build omits voice keys from the custom keyboard', () => {
+  const constants = jest.requireMock<{ default: { expoConfig: unknown } }>('expo-constants').default;
+  constants.expoConfig = { extra: { personalBuild: true } };
+  try {
+    mount({ preferences: { ...props.preferences, customKeyboardEnabled: true, customKeyboardLayout: '[["voice_kb","esc"],["voice_input","enter"]]' } });
+    expect(renderer.root.findAll(node => String(node.type) === 'Button' && node.props.accessibilityLabel === 'terminal.voice.keyboard')).toHaveLength(0);
+    expect(button('escapeKey')).toBeDefined();
+  } finally { constants.expoConfig = null; }
 });

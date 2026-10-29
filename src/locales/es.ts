@@ -54,7 +54,7 @@ export const es = {
   'settings.customKeyboard': 'Teclado de terminal personalizado',
   'settings.customKeyboardCopy': 'Usa dos filas configurables en lugar de los controles estándar.',
   'settings.editCustomKeyboard': 'Editar distribución',
-  'settings.editCustomKeyboardCopy': 'Introduce dos filas JSON con identificadores de Haven o macros {label, send}. Voice abre el dictado en el editor; Snippets muestra las macros de esta distribución.',
+  'settings.editCustomKeyboardCopy': 'Introduce dos filas JSON con identificadores de Haven o macros {label, send}. Snippets muestra las macros de esta distribución.',
   'settings.customKeyboardJson': 'JSON del teclado de terminal',
   'settings.restoreKeyboardDefault': 'Restaurar valores predeterminados',
   'terminal.snippets': 'Fragmentos',

@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import { useLayoutEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 
@@ -28,7 +29,7 @@ export function useChatReadAloud(
     setReadingTurnId(null);
   }, [bindingToken, hostId, paneId, dictating]);
 
-  const disabled = !target || dictating || (Platform.OS !== 'android' && Platform.OS !== 'ios');
+  const disabled = isPersonalBuild() || !target || dictating || (Platform.OS !== 'android' && Platform.OS !== 'ios');
   const canRead = (turn: TranscriptTurn) => !disabled
     && turn.assistants.some(message => message.role === 'assistant'
       && (target?.agent === 'codex' || message.completedAt !== undefined)

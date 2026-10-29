@@ -54,7 +54,7 @@ export const zhHans = {
   'settings.customKeyboard': '自定义终端键盘',
   'settings.customKeyboardCopy': '使用两行可配置按键替代标准终端控件。',
   'settings.editCustomKeyboard': '编辑键盘布局',
-  'settings.editCustomKeyboardCopy': '输入两行 JSON，包含 Haven 按键 ID 或 {label, send} 宏。Voice 在编辑器中打开语音输入；Snippets 列出此布局中的宏。',
+  'settings.editCustomKeyboardCopy': '输入两行 JSON，包含 Haven 按键 ID 或 {label, send} 宏。Snippets 列出此布局中的宏。',
   'settings.customKeyboardJson': '终端键盘 JSON',
   'settings.restoreKeyboardDefault': '恢复默认',
   'terminal.snippets': '代码片段',

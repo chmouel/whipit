@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import Purchases, {
@@ -43,6 +44,7 @@ function publicSdkKey(): string | null {
 }
 
 export function initializeRevenueCat(): Promise<boolean> {
+  if (isPersonalBuild()) return Promise.resolve(false);
   if (initialization) return initialization;
 
   initialization = Promise.resolve().then(() => {

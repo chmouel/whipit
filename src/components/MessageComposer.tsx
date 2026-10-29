@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import { useCallback, useEffect, useRef, type ReactNode, type Ref } from 'react';
 import { Maximize2, Mic, Paperclip, Send, Square } from 'lucide-react-native';
 import type { ComposerDictationPhase } from 'react-native-whip-ssh/src/composerDictation';
@@ -261,7 +262,7 @@ export function MessageComposer({
             <Send size={17} color={sendColor} />
           )}
         </Button>
-        <ComposerVoiceButton
+        {!isPersonalBuild() && <ComposerVoiceButton
           accessibilityLabel={actions.voiceLabel}
           className={cn(
             'size-10 rounded-full px-0',
@@ -275,7 +276,7 @@ export function MessageComposer({
           onPress={actions.onVoiceInput}
           phase={actions.voicePhase}
           iconColor={actions.voicePhase === 'listening' ? colors.primary : actionColor}
-        />
+        />}
       </View>
     </View>
   );

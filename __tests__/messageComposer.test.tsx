@@ -1,3 +1,4 @@
+jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: null } }));
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import * as Haptics from 'expo-haptics';
 

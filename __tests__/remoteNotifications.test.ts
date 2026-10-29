@@ -32,7 +32,7 @@ jest.mock('expo-notifications', () => ({
 }));
 jest.mock('expo-constants', () => ({
   __esModule: true,
-  default: { easConfig: { projectId: 'expo-project' } },
+  default: { easConfig: { projectId: 'expo-project' }, expoConfig: { extra: { personalBuild: false } } },
 }));
 jest.mock('expo-application', () => ({
   ApplicationReleaseType: { SIMULATOR: 1 },
@@ -559,4 +559,18 @@ test('rejects navigation after a saved profile changes host identity or Herdr se
       runtime,
     ),
   ).rejects.toThrow('changed');
+});
+
+
+test('personal build does not enable, refresh, or renew remote notifications', async () => {
+  const constants = jest.requireMock<{ default: { expoConfig: { extra: { personalBuild: boolean } } } }>('expo-constants').default;
+  constants.expoConfig.extra.personalBuild = true;
+  try {
+    await expect(service.enableRemoteNotifications('saved-host', 'https://example.test')).rejects.toThrow('disabled');
+    await expect(service.remoteNotificationStates()).resolves.toEqual([]);
+    await service.refreshRemotePushTokens();
+    await service.renewNotificationLeases();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(command).not.toHaveBeenCalled();
+  } finally { constants.expoConfig.extra.personalBuild = false; }
 });

@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import { ChevronRight, ExternalLink, Info, Scale, Share2 } from 'lucide-react-native';
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
@@ -246,7 +247,7 @@ export function AboutSection({ onOpenLicenses }: { onOpenLicenses: () => void })
                 <Icon as={ExternalLink} size={12} />
               </Button>
             ) : null}
-            {channel === 'github' ? <CheckForUpdates installedVersion={whipVersion} /> : null}
+            {channel === 'github' && !isPersonalBuild() ? <CheckForUpdates installedVersion={whipVersion} /> : null}
           </View>
 
           <View className="mt-9 items-center">

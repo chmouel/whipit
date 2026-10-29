@@ -1,3 +1,4 @@
+jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: null } }));
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 
 import { useChatReadAloud } from '../src/hooks/useChatReadAloud';
@@ -98,4 +99,16 @@ test('reports unavailable speech without leaving the button active', () => {
   act(() => control.toggle(turn));
   expect(control.readingTurnId).toBeNull();
   expect(onError).toHaveBeenCalledWith(error);
+});
+
+
+test('personal build does not start read aloud', () => {
+  const constants = jest.requireMock<{ default: { expoConfig: unknown } }>('expo-constants').default;
+  constants.expoConfig = { extra: { personalBuild: true } };
+  try {
+    act(() => renderer.update(<Harness />));
+    expect(control.canRead(turn)).toBe(false);
+    act(() => control.toggle(turn));
+    expect(readChatResponse).not.toHaveBeenCalled();
+  } finally { constants.expoConfig = null; }
 });

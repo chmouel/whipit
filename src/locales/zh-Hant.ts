@@ -54,7 +54,7 @@ export const zhHant: Record<string, string> = {
   'settings.customKeyboard': '自訂終端鍵盤',
   'settings.customKeyboardCopy': '使用兩列可設定按鍵取代標準終端控制。',
   'settings.editCustomKeyboard': '編輯鍵盤配置',
-  'settings.editCustomKeyboardCopy': '輸入兩列 JSON，包含 Haven 按鍵 ID 或 {label, send} 巨集。Voice 在編輯器中開啟語音輸入；Snippets 列出此配置中的巨集。',
+  'settings.editCustomKeyboardCopy': '輸入兩列 JSON，包含 Haven 按鍵 ID 或 {label, send} 巨集。Snippets 列出此配置中的巨集。',
   'settings.customKeyboardJson': '終端鍵盤 JSON',
   'settings.restoreKeyboardDefault': '還原預設',
   'terminal.snippets': '片段',

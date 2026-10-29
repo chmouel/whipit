@@ -56,6 +56,7 @@ import { removeAppBackgroundImage, selectAppBackgroundImage } from '@/src/servic
 import { openNotificationSettings } from '@/src/services/notificationSettings';
 import { removeTerminalBackgroundImage, selectTerminalBackgroundImage } from '@/src/services/terminalBackground';
 import { getBillingRolloutPolicy } from '../billing/rollout';
+import { isPersonalBuild } from '../billing/distribution';
 import { hapticPress, IconButton } from './app-ui';
 import { ConfirmationPopup } from './ConfirmationPopup';
 import { ChatCacheSetting } from './ChatCacheSetting';
@@ -308,7 +309,7 @@ export function SettingsSection(props: SettingsSectionProps) {
           onPress={props.onTestAgentNotification}
           divided
         /> : null}
-        <SettingRow title={t('settings.speakChanges')} copy={t('settings.speakChangesCopy')} value={props.ttsEnabled} onChange={props.onTtsChange} divided />
+        {!isPersonalBuild() && <SettingRow title={t('settings.speakChanges')} copy={t('settings.speakChangesCopy')} value={props.ttsEnabled} onChange={props.onTtsChange} divided />}
         <ActionRow
           title={t('settings.changeNotificationSettings')}
           copy={t('settings.changeNotificationSettingsCopy')}

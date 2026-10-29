@@ -54,7 +54,7 @@ export const ja = {
   'settings.customKeyboard': 'カスタム端末キーボード',
   'settings.customKeyboardCopy': '標準の操作の代わりに設定可能な2行を使用します。',
   'settings.editCustomKeyboard': 'キーボード配列を編集',
-  'settings.editCustomKeyboardCopy': 'HavenのキーIDまたは {label, send} マクロを含む2行のJSONを入力します。Voiceは入力欄で音声入力を開き、Snippetsはこの配列のマクロを表示します。',
+  'settings.editCustomKeyboardCopy': 'HavenのキーIDまたは {label, send} マクロを含む2行のJSONを入力します。Snippetsはこの配列のマクロを表示します。',
   'settings.customKeyboardJson': '端末キーボードのJSON',
   'settings.restoreKeyboardDefault': '初期設定に戻す',
   'terminal.snippets': 'スニペット',

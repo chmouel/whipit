@@ -54,7 +54,7 @@ export const en = {
   'settings.customKeyboard': 'Custom terminal keyboard',
   'settings.customKeyboardCopy': 'Use two configurable rows instead of the standard terminal controls.',
   'settings.editCustomKeyboard': 'Edit keyboard layout',
-  'settings.editCustomKeyboardCopy': 'Enter two JSON rows of Haven key IDs or {label, send} macros. Voice opens Whip dictation in the composer; snippets lists custom keys in this layout.',
+  'settings.editCustomKeyboardCopy': 'Enter two JSON rows of Haven key IDs or {label, send} macros. Snippets lists the custom keys in this layout.',
   'settings.customKeyboardJson': 'Terminal keyboard JSON',
   'settings.restoreKeyboardDefault': 'Restore default',
   'terminal.snippets': 'Snippets',

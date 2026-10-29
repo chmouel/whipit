@@ -56,7 +56,7 @@ export const fr = {
   'settings.customKeyboard': 'Clavier de terminal personnalisé',
   'settings.customKeyboardCopy': 'Utiliser deux rangées configurables à la place des commandes standard.',
   'settings.editCustomKeyboard': 'Modifier la disposition',
-  'settings.editCustomKeyboardCopy': 'Saisissez deux rangées JSON avec des identifiants Haven ou des macros {label, send}. Voice ouvre la dictée dans le composeur ; Snippets affiche les macros de cette disposition.',
+  'settings.editCustomKeyboardCopy': 'Saisissez deux rangées JSON avec des identifiants Haven ou des macros {label, send}. Snippets affiche les macros de cette disposition.',
   'settings.customKeyboardJson': 'JSON du clavier de terminal',
   'settings.restoreKeyboardDefault': 'Restaurer la disposition par défaut',
   'terminal.snippets': 'Extraits',

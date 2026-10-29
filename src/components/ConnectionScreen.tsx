@@ -34,6 +34,7 @@ import { SshKeyCopySheet } from './SshKeyCopySheet';
 import { JumpHostSelect } from './JumpHostSelect';
 import { InstallPublicKeySheet } from './InstallPublicKeySheet';
 import { RemoteNotificationsSection } from './RemoteNotificationsSection';
+import { isPersonalBuild } from '../billing/distribution';
 
 interface Props {
   initialProfile: ConnectionProfile;
@@ -393,7 +394,7 @@ export function ConnectionScreen({ initialProfile, hosts, connecting, connected 
         {onDelete ? <Button className="mt-3.5 rounded-full" variant="destructive" onPress={hapticPress(onDelete)}><Icon as={Trash2} className="text-destructive-foreground" size={17} /><Text>{t('connection.deleteHost')}</Text></Button> : null}
         <Text className="mt-4 text-center text-[11px] leading-4 text-muted-foreground/70">{t('connection.hostKeyWarning')}</Text>
         </GlassSurface>
-        {savedHost ? (
+        {savedHost && !isPersonalBuild() ? (
           <GlassSurface className={cn(HOST_DETAIL_CARD_CLASS_NAME, 'mt-4 overflow-hidden')}>
             <RemoteNotificationsSection key={savedHost.id} host={savedHost} />
           </GlassSurface>

@@ -1,3 +1,4 @@
+jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: null } }));
 import { createRef, Profiler, type ComponentProps } from 'react';
 import { Linking, Platform, type View } from 'react-native';
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
