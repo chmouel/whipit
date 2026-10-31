@@ -125,7 +125,6 @@ test('requires Rancher for the default fullscreen terminal and preserves disable
 test('terminal preference defaults match the mobile renderer', () => {
   expect(defaultDevicePreferences.terminal).toEqual({
     fullscreen: true,
-    customKeyboardEnabled: false,
     customKeyboardLayout: defaultDevicePreferences.terminal.customKeyboardLayout,
     useModifierKeyIcons: false,
     volumeUpAction: 'none',
@@ -213,7 +212,6 @@ test('migrates the old 11px mobile default to the usable 8px geometry', async ()
     terminalControlUsage: {},
     terminal: {
       fullscreen: true,
-      customKeyboardEnabled: false,
       customKeyboardLayout: defaultDevicePreferences.terminal.customKeyboardLayout,
       useModifierKeyIcons: false,
       volumeUpAction: 'none',
@@ -652,9 +650,9 @@ test('Store builds ignore persisted developer settings without erasing them', ()
 
 test('custom keyboard persists and corrupt layouts fall back safely', async () => {
   const layout = '[[{"label":"TC","send":"`c"}],[]]';
-  await saveDevicePreferences({ ...defaultDevicePreferences, terminal: { ...defaultDevicePreferences.terminal, customKeyboardEnabled: true, customKeyboardLayout: layout } });
+  await saveDevicePreferences({ ...defaultDevicePreferences, terminal: { ...defaultDevicePreferences.terminal, customKeyboardLayout: layout } });
   mockGetItem.mockResolvedValue(mockSetItem.mock.calls.at(-1)![1]);
-  expect((await loadDevicePreferences()).terminal).toMatchObject({ customKeyboardEnabled: true, customKeyboardLayout: layout });
-  mockGetItem.mockResolvedValue(JSON.stringify({ terminal: { customKeyboardEnabled: true, customKeyboardLayout: '{' } }));
+  expect((await loadDevicePreferences()).terminal).toMatchObject({ customKeyboardLayout: layout });
+  mockGetItem.mockResolvedValue(JSON.stringify({ terminal: { customKeyboardLayout: '{' } }));
   expect((await loadDevicePreferences()).terminal.customKeyboardLayout).toBe(defaultDevicePreferences.terminal.customKeyboardLayout);
 });

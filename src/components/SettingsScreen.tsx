@@ -470,7 +470,6 @@ export function SettingsSection(props: SettingsSectionProps) {
         />
         <SettingRow title={t('settings.keepScreenOn')} copy={t('settings.keepScreenOnCopy')} value={props.keepScreenOn} onChange={props.onKeepScreenOnChange} divided />
         <SettingRow title={t('settings.reopenTerminal')} copy={t('settings.reopenTerminalCopy')} value={props.reopenTerminalOnLaunch} onChange={props.onReopenTerminalOnLaunchChange} divided />
-        <SettingRow title={t('settings.customKeyboard')} copy={t('settings.customKeyboardCopy')} value={props.terminalPreferences.customKeyboardEnabled} onChange={value => props.onTerminalPreferencesChange({ ...props.terminalPreferences, customKeyboardEnabled: value })} divided />
         <ActionRow title={t('settings.editCustomKeyboard')} copy={t('settings.editCustomKeyboardCopy')} icon={Code2} onPress={() => { setKeyboardDraft(props.terminalPreferences.customKeyboardLayout); setKeyboardError(''); setKeyboardEditorOpen(true); }} divided />
         <SettingRow title={t('settings.useModifierKeyIcons')} copy={t('settings.useModifierKeyIconsCopy')} value={props.terminalPreferences.useModifierKeyIcons} onChange={value => props.onTerminalPreferencesChange({ ...props.terminalPreferences, useModifierKeyIcons: value })} divided />
         <ActionRow
@@ -598,7 +597,7 @@ export function SettingsSection(props: SettingsSectionProps) {
       /> : null}
       <Modal animationType="slide" visible={keyboardEditorOpen} onRequestClose={() => setKeyboardEditorOpen(false)}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-background px-4" style={{ paddingTop: Math.max(top, 16), paddingBottom: Math.max(bottom, 16) }}>
-          <Text className="text-lg font-bold text-foreground">{t('settings.customKeyboard')}</Text>
+          <Text className="text-lg font-bold text-foreground">{t('settings.editCustomKeyboard')}</Text>
           <Text className="mt-2 text-muted-foreground">{t('settings.editCustomKeyboardCopy')}</Text>
           <View className="mt-3 flex-row flex-wrap gap-2">
             <Button variant="secondary" onPress={() => { setKeyboardDraft(DEFAULT_CUSTOM_TERMINAL_KEYBOARD); setKeyboardError(''); }}><Text>{t('settings.restoreKeyboardDefault')}</Text></Button>

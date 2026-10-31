@@ -2,10 +2,7 @@ import { useCallback } from 'react';
 import type { ComposerDraftRequest } from '../lib/composerDraftRequest';
 import type { TerminalComposerStore } from '../lib/terminalComposerStore';
 
-import type {
-  TerminalControlId,
-  TerminalControlUsage,
-} from '../lib/terminalControls';
+import type { TerminalControlId } from '../lib/terminalControls';
 import type { TerminalRenderTarget } from '../lib/terminalRenderer';
 import type { TranscriptFileLinkTarget } from '../lib/transcriptLinks';
 import type { SessionPresentation } from '../liveHostSessions';
@@ -32,7 +29,6 @@ interface Props {
   appBackgroundImageUri: string | null;
   appBackgroundDimming: number;
   terminalPreferences: TerminalPreferences;
-  terminalControlUsage: TerminalControlUsage;
   terminalHistory: readonly string[];
   onOpenFiles: (
     sessionId: string,
@@ -81,7 +77,6 @@ export function LiveSessionView({
   appBackgroundImageUri,
   appBackgroundDimming,
   terminalPreferences,
-  terminalControlUsage,
   terminalHistory,
   onOpenFiles,
   composerStore,
@@ -161,7 +156,6 @@ export function LiveSessionView({
       onTerminalFontSizeChange={onTerminalFontSizeChange}
       onTerminalChatSelect={onTerminalChatSelect}
       terminalPreferences={terminalPreferences}
-      terminalControlUsage={terminalControlUsage}
       terminalHistory={terminalHistory}
       onOpenFiles={openFiles}
       composerStore={composerStore}

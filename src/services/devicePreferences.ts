@@ -59,7 +59,6 @@ export type AgentAlertLevel = (typeof agentAlertLevels)[number];
 
 export interface TerminalPreferences {
   fullscreen: boolean;
-  customKeyboardEnabled: boolean;
   customKeyboardLayout: string;
   useModifierKeyIcons: boolean;
   volumeUpAction: TerminalVolumeKeyAction;
@@ -131,7 +130,6 @@ export const defaultDevicePreferences: DevicePreferences = {
   lastTab: 'hosts',
   terminal: {
     fullscreen: true,
-    customKeyboardEnabled: false,
     customKeyboardLayout: DEFAULT_CUSTOM_TERMINAL_KEYBOARD,
     useModifierKeyIcons: false,
     volumeUpAction: 'none',
@@ -313,7 +311,6 @@ function parseDevicePreferences(
         fullscreen: typeof terminal.fullscreen === 'boolean'
           ? terminal.fullscreen
           : defaultDevicePreferences.terminal.fullscreen,
-        customKeyboardEnabled: terminal.customKeyboardEnabled === true,
         customKeyboardLayout: validKeyboardLayout(terminal.customKeyboardLayout),
         useModifierKeyIcons: terminal.useModifierKeyIcons === true,
         volumeUpAction: parseTerminalVolumeKeyAction(

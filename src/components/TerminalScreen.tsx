@@ -41,6 +41,9 @@ import {
   TriangleAlert,
   Undo2,
   X,
+  ChevronFirst,
+  ChevronLast,
+  Lock,
   type LucideIcon,
 } from 'lucide-react-native';
 import {
@@ -82,17 +85,11 @@ import { cn } from '@/src/lib/utils';
 import { APP_FROSTED_GLASS_SURFACE_PROPS } from '../lib/appGlass';
 import { retryDelay } from '../lib/retryDelay';
 import {
-  orderTerminalControls,
-  swapTerminalArrowControls,
-  terminalArrowControlCanSwap,
-  terminalControlIsVisible,
   TERMINAL_CONTROL_HIT_SLOP,
-  TERMINAL_ICON_CONTROL_CLASS,
-  TERMINAL_TEXT_CONTROL_CLASS,
+  TERMINAL_KEY_CLASS,
   type TerminalControlId,
-  type TerminalControlUsage,
 } from '../lib/terminalControls';
-import { keyboardControls, keyboardSequences, keyboardSymbols, parseTerminalKeyboard, type KeyboardItem } from '../lib/terminalKeyboard';
+import { alignedKeyboardColumns, DEFAULT_CUSTOM_TERMINAL_KEYBOARD, isKeyboardAction, keyboardActions, keyboardControls, keyboardSequences, keyboardSymbols, parseTerminalKeyboard, type KeyboardAction, type KeyboardCustomKey, type KeyboardItem } from '../lib/terminalKeyboard';
 import { OfflineTerminalBackend } from '../lib/offlineTerminalBackend';
 import {
   directTerminalKeyboardEnabled,
@@ -170,7 +167,6 @@ interface Props {
   targets: readonly TerminalRenderTarget[];
   visible: boolean;
   preferences: TerminalPreferences;
-  controlUsage: TerminalControlUsage;
   historyEntries: readonly string[];
   compact?: boolean;
   sessionChromeInset?: number;
@@ -178,6 +174,7 @@ interface Props {
   latencyMs?: number | null;
   latencyWarningActive?: boolean;
   onControlUse: (control: TerminalControlId) => void;
+  onKeyboardAction?: (action: KeyboardAction) => void;
   onHistoryEntry: (entry: string) => void;
   composerDraftRequest?: ComposerDraftRequest;
   onComposerDraftConsumed?: (id: number) => void;
@@ -254,20 +251,20 @@ const TERMINAL_CONTROL_LONG_PRESS_MS = 450;
 
 const TERMINAL_KEYS: Partial<Record<TerminalControlId, TerminalKeyDefinition>> =
   {
-    esc: ['ESC', '\u001b', 'text'],
-    tab: ['TAB', '\t', 'text'],
+    esc: ['Esc', '\u001b', 'text'],
+    tab: ['Tab', '\t', 'text'],
     up: ['↑', '\u001b[A', 'symbol'],
     left: ['←', '\u001b[D', 'symbol'],
     right: ['→', '\u001b[C', 'symbol'],
     down: ['↓', '\u001b[B', 'symbol'],
-    enter: ['ENTER', ENTER_INPUT, 'text'],
+    enter: ['Enter', ENTER_INPUT, 'text'],
     slash: ['/', '/', 'symbol'],
     pipe: ['|', '|', 'symbol'],
     tilde: ['~', '~', 'symbol'],
-    end: ['END', '\u001b[F', 'text'],
-    'page-up': ['PG↑', '\u001b[5~', 'text'],
-    'page-down': ['PG↓', '\u001b[6~', 'text'],
-    home: ['HOME', '\u001b[H', 'text'],
+    end: ['End', '\u001b[F', 'text'],
+    'page-up': ['PgUp', '\u001b[5~', 'text'],
+    'page-down': ['PgDn', '\u001b[6~', 'text'],
+    home: ['Home', '\u001b[H', 'text'],
   };
 
 interface TerminalIconDefinition {
@@ -282,6 +279,9 @@ const TERMINAL_KEY_ICONS: Partial<
   left: { icon: ArrowLeft, accessibilityKey: 'terminal.leftKey' },
   right: { icon: ArrowRight, accessibilityKey: 'terminal.rightKey' },
   down: { icon: ArrowDown, accessibilityKey: 'terminal.downKey' },
+  home: { icon: ChevronFirst, accessibilityKey: 'terminal.homeKey' },
+  end: { icon: ChevronLast, accessibilityKey: 'terminal.endKey' },
+  enter: { icon: CornerDownLeft, accessibilityKey: 'terminal.enterKey' },
 };
 
 const ICONIC_TERMINAL_KEYS: Partial<
@@ -289,7 +289,6 @@ const ICONIC_TERMINAL_KEYS: Partial<
 > = {
   esc: { icon: CircleArrowOutUpLeft, accessibilityKey: 'terminal.escapeKey' },
   tab: { icon: ArrowRightToLine, accessibilityKey: 'terminal.tabKey' },
-  enter: { icon: CornerDownLeft, accessibilityKey: 'terminal.enterKey' },
 };
 
 const WEBVIEW_STYLE = { flex: 1, backgroundColor: 'transparent' } as const;
@@ -408,7 +407,6 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
       targets,
       visible,
       preferences,
-      controlUsage,
       historyEntries,
       compact = false,
       sessionChromeInset = 0,
@@ -416,6 +414,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
       latencyMs = null,
       latencyWarningActive = false,
       onControlUse,
+      onKeyboardAction,
       onHistoryEntry,
       composerStore,
       composerDraftRequest,
@@ -487,9 +486,9 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
     const [snippetsOpen, setSnippetsOpen] = useState(false);
     const [startVoice, setStartVoice] = useState(false);
     const customLayout = useMemo(() => {
-      if (!preferences.customKeyboardEnabled) return null;
-      try { return parseTerminalKeyboard(preferences.customKeyboardLayout); } catch { return null; }
-    }, [preferences.customKeyboardEnabled, preferences.customKeyboardLayout]);
+      try { return parseTerminalKeyboard(preferences.customKeyboardLayout); } catch { return parseTerminalKeyboard(DEFAULT_CUSTOM_TERMINAL_KEYBOARD); }
+    }, [preferences.customKeyboardLayout]);
+    const keyboardColumns = useMemo(() => alignedKeyboardColumns(customLayout), [customLayout]);
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchCase, setSearchCase] = useState(false);
@@ -549,9 +548,6 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
       targetKey: string;
       scroll: TerminalRenderTarget['scroll'];
     } | null>(null);
-    const [controlOrder, setControlOrder] = useState(() =>
-      orderTerminalControls(controlUsage),
-    );
     const scrollThumb = alternateScreen
       ? null
       : terminalScrollThumb(scrollPosition);
@@ -1490,10 +1486,6 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
       }), 'composer-image-upload');
     }, [composerStore]);
 
-    const swapArrowControls = (control: TerminalControlId) => {
-      setControlOrder(order => swapTerminalArrowControls(order, control));
-    };
-
     const renderTerminalControl = (control: TerminalControlId) => {
       const key = TERMINAL_KEYS[control];
       if (key) {
@@ -1516,11 +1508,6 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
                 : undefined
             }
             symbolic={!icon && key[2] === 'symbol'}
-            onLongPress={
-              terminalArrowControlCanSwap(control)
-                ? () => swapArrowControls(control)
-                : undefined
-            }
             onPress={() => {
               onControlUse(control);
               reportBackgroundFailure(
@@ -1545,8 +1532,8 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
               selected: keyboardControlSelected,
             }}
             className={cn(
-              TERMINAL_ICON_CONTROL_CLASS,
-              keyboardControlSelected && 'border-primary bg-primary/15',
+              TERMINAL_KEY_CLASS,
+              keyboardControlSelected && 'bg-primary/25',
             )}
             disabled={keyboardControlDisabled}
             variant="secondary"
@@ -1595,7 +1582,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
           <TerminalControlButton
             key={control}
             accessibilityLabel={t('terminal.paste')}
-            className={TERMINAL_ICON_CONTROL_CLASS}
+            className={TERMINAL_KEY_CLASS}
             variant="secondary"
             onPress={hapticPress(() => {
               onControlUse(control);
@@ -1618,8 +1605,8 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
             accessibilityLabel={t('terminal.history')}
             accessibilityState={{ expanded: historyOpen }}
             className={cn(
-              TERMINAL_ICON_CONTROL_CLASS,
-              historyOpen && 'border-primary',
+              TERMINAL_KEY_CLASS,
+              historyOpen && 'bg-primary/25',
             )}
             variant="secondary"
             onPress={() => {
@@ -1653,8 +1640,8 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
             accessibilityLabel={t('terminal.compose')}
             accessibilityState={{ selected: composeOpen }}
             className={cn(
-              TERMINAL_ICON_CONTROL_CLASS,
-              composeOpen && 'border-primary',
+              TERMINAL_KEY_CLASS,
+              composeOpen && 'bg-primary/25',
             )}
             variant="secondary"
             onPress={() => {
@@ -1685,8 +1672,8 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
               selected: chatControl.active,
             }}
             className={cn(
-              TERMINAL_ICON_CONTROL_CLASS,
-              chatControl.active && 'border-primary bg-primary/15',
+              TERMINAL_KEY_CLASS,
+              chatControl.active && 'bg-primary/25',
             )}
             disabled={chatControl.disabled}
             variant="secondary"
@@ -1719,7 +1706,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
           <TerminalControlButton
             key={control}
             accessibilityLabel={t('terminal.attach')}
-            className={TERMINAL_ICON_CONTROL_CLASS}
+            className={TERMINAL_KEY_CLASS}
             variant="secondary"
             onPress={() => {
               onControlUse(control);
@@ -1737,7 +1724,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
           <TerminalControlButton
             key={control}
             accessibilityLabel={t('terminal.openFiles')}
-            className={TERMINAL_ICON_CONTROL_CLASS}
+            className={TERMINAL_KEY_CLASS}
             variant="secondary"
             onPress={() => {
               onControlUse(control);
@@ -1755,7 +1742,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
           <TerminalControlButton
             key={control}
             accessibilityLabel={t('terminal.scanLinks')}
-            className={TERMINAL_ICON_CONTROL_CLASS}
+            className={TERMINAL_KEY_CLASS}
             disabled={status !== 'connected'}
             variant="secondary"
             onPress={() => {
@@ -1776,8 +1763,8 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
             accessibilityLabel={t('terminal.find')}
             accessibilityState={{ selected: searchOpen }}
             className={cn(
-              TERMINAL_ICON_CONTROL_CLASS,
-              searchOpen && 'border-primary',
+              TERMINAL_KEY_CLASS,
+              searchOpen && 'bg-primary/25',
             )}
             variant="secondary"
             onPress={() => {
@@ -1811,7 +1798,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
               value: ctrl,
               setValue: setCtrl,
               icon: ChevronUp,
-              label: 'CTRL',
+              label: 'Ctrl',
               accessibilityKey: 'terminal.ctrlModifier',
             }
           : control === 'shift'
@@ -1819,7 +1806,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
               value: shift,
               setValue: setShift,
               icon: ArrowBigUp,
-              label: 'SHIFT',
+              label: 'Shift',
               accessibilityKey: 'terminal.shiftModifier',
             }
           : control === 'alt'
@@ -1827,7 +1814,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
               value: alt,
               setValue: setAlt,
               icon: Option,
-              label: 'ALT',
+              label: 'Alt',
               accessibilityKey: 'terminal.altModifier',
             }
           : null;
@@ -1842,12 +1829,10 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
           accessibilityLabel={t(modifier.accessibilityKey)}
           accessibilityState={{ selected: modifier.value !== 'off' }}
           className={cn(
-            preferences.useModifierKeyIcons
-              ? TERMINAL_ICON_CONTROL_CLASS
-              : TERMINAL_TEXT_CONTROL_CLASS,
-            modifier.value === 'armed' && 'border-primary',
+            TERMINAL_KEY_CLASS,
+            modifier.value === 'armed' && 'bg-primary/25',
             modifier.value === 'locked' &&
-              'border-primary bg-primary/70 active:bg-primary/80',
+              'bg-primary/70 active:bg-primary/80',
           )}
           delayLongPress={TERMINAL_CONTROL_LONG_PRESS_MS}
           variant="secondary"
@@ -1870,6 +1855,17 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
           )}
         </TerminalControlButton>
       );
+    };
+
+    const renderKeyboardItem = (item: KeyboardItem) => {
+      if (typeof item !== 'string') return <TerminalKey label={item.label} onPress={() => renderer.current?.input(item.send, true)} />;
+      if (isKeyboardAction(item)) return <TerminalKey label={keyboardActions[item]} accessibilityLabel={t(`terminal.keyboardAction.${item}`)} onPress={() => onKeyboardAction?.(item)} />;
+      if (keyboardControls[item]) return renderTerminalControl(keyboardControls[item]);
+      if (keyboardSymbols[item]) return <TerminalKey label={keyboardSymbols[item]} symbolic onPress={() => { reportBackgroundFailure(sendInput(keyboardSymbols[item]), TERMINAL_INPUT_CONTEXT); }} />;
+      if (keyboardSequences[item]) return <TerminalKey label={keyboardSequences[item][0]} onPress={() => { reportBackgroundFailure(sendInput(keyboardSequences[item][1]), TERMINAL_INPUT_CONTEXT); }} />;
+      if (item === 'snippets') return <TerminalKey label="✂" symbolic accessibilityLabel={t('terminal.snippets')} onPress={() => setSnippetsOpen(true)} />;
+      if (isPersonalBuild()) return null;
+      return <TerminalKey label={t('terminal.voice.keyboard')} icon={Lock} accessibilityLabel={t('terminal.voice.keyboard')} onPress={() => { if (!composeOpen) { openCompose(); setStartVoice(true); } else speechInput.toggle(); }} />;
     };
 
     const composerInputProps = {
@@ -2253,39 +2249,24 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
             );
           }}
         >
-          {customLayout ? customLayout.map((row, rowIndex) => (
-            <ScrollView
-              key={rowIndex}
-              horizontal
-              keyboardShouldPersistTaps="always"
-              showsHorizontalScrollIndicator={false}
-              className="flex-grow-0"
-              contentContainerClassName="items-center gap-[5px] px-1.5 pt-[7px]"
-              contentContainerStyle={{ paddingBottom: rowIndex === 1 ? 7 + bottomSafeAreaInset : 0 }}
-            >
-              {row.map((item, index) => {
-                const key = `${rowIndex}-${index}`;
-                if (typeof item !== 'string') return <TerminalKey key={key} label={item.label} onPress={() => renderer.current?.input(item.send, true)} />;
-                if (keyboardControls[item]) return <View key={key}>{renderTerminalControl(keyboardControls[item])}</View>;
-                if (keyboardSymbols[item]) return <TerminalKey key={key} label={keyboardSymbols[item]} symbolic onPress={() => { reportBackgroundFailure(sendInput(keyboardSymbols[item]), TERMINAL_INPUT_CONTEXT); }} />;
-                if (keyboardSequences[item]) return <TerminalKey key={key} label={keyboardSequences[item][0]} onPress={() => { reportBackgroundFailure(sendInput(keyboardSequences[item][1]), TERMINAL_INPUT_CONTEXT); }} />;
-                if (isPersonalBuild() && (item === 'voice_kb' || item === 'voice_input')) return null;
-                if (item === 'snippets') return <TerminalKey key={key} label={t('terminal.snippets')} onPress={() => setSnippetsOpen(true)} />;
-                return <TerminalKey key={key} label={t('terminal.voice.keyboard')} onPress={() => { if (!composeOpen) { openCompose(); setStartVoice(true); } else speechInput.toggle(); }} />;
-              })}
-            </ScrollView>
-          )) : (
-            <ScrollView
-              horizontal
-              keyboardShouldPersistTaps="always"
-              showsHorizontalScrollIndicator={false}
-              className="flex-grow-0"
-              contentContainerClassName="items-center gap-[5px] px-1.5 pt-[7px]"
-              contentContainerStyle={{ paddingBottom: 7 + bottomSafeAreaInset }}
-            >
-              {controlOrder.filter(control => terminalControlIsVisible(control, keyboardVisible)).map(renderTerminalControl)}
-            </ScrollView>
-          )}
+          <ScrollView
+            horizontal
+            keyboardShouldPersistTaps="always"
+            showsHorizontalScrollIndicator={false}
+            className="flex-grow-0 bg-background"
+            contentContainerClassName="gap-[2px] px-1 pt-1"
+            contentContainerStyle={{ paddingBottom: 4 + bottomSafeAreaInset }}
+          >
+            {keyboardColumns.map((column, index) => (
+              <View key={index} className="gap-[2px]">
+                {[column.top, column.bottom].map((item, row) => (
+                  <View key={row} className="h-8">
+                    {item === undefined ? null : renderKeyboardItem(item)}
+                  </View>
+                ))}
+              </View>
+            ))}
+          </ScrollView>
         </Animated.View>
         {visible && composeOpen && composeExpanded && (
           <Modal
@@ -2387,7 +2368,7 @@ export const TerminalScreen = forwardRef<TerminalScreenHandle, Props>(
             <GlassSurface {...APP_FROSTED_GLASS_SURFACE_PROPS} className="rounded-t-3xl px-4 pt-4" fallbackClassName="bg-background" style={{ paddingBottom: Math.max(16, bottomSafeAreaInset) }}>
               <Text className="text-lg font-bold text-foreground">{t('terminal.snippets')}</Text>
               <ScrollView className="max-h-[420px]" keyboardShouldPersistTaps="always">
-                {customLayout?.flat().filter((item): item is Exclude<KeyboardItem, string> => typeof item !== 'string').map((item, index) => (
+                {customLayout.flat().filter((item): item is KeyboardCustomKey => typeof item !== 'string').map((item, index) => (
                   <Button key={index} variant="ghost" className="justify-start" onPress={() => { setSnippetsOpen(false); renderer.current?.input(item.send, true); }}><Text>{item.label}</Text></Button>
                 ))}
               </ScrollView>
@@ -2659,27 +2640,19 @@ function TerminalKey({
   icon,
   accessibilityLabel,
   symbolic = false,
-  onLongPress,
   onPress,
 }: {
   label: string;
   icon?: LucideIcon;
   accessibilityLabel?: string;
   symbolic?: boolean;
-  onLongPress?: () => void;
   onPress: () => void;
 }) {
   return (
     <TerminalControlButton
       accessibilityLabel={accessibilityLabel || label}
-      className={
-        icon || symbolic
-          ? TERMINAL_ICON_CONTROL_CLASS
-          : TERMINAL_TEXT_CONTROL_CLASS
-      }
-      delayLongPress={TERMINAL_CONTROL_LONG_PRESS_MS}
+      className={TERMINAL_KEY_CLASS}
       variant="secondary"
-      onLongPress={onLongPress ? hapticPress(onLongPress) : undefined}
       onPress={hapticPress(onPress)}
     >
       {icon ? (
@@ -2719,8 +2692,8 @@ function TerminalControlLabel({
       allowFontScaling={false}
       numberOfLines={1}
       className={cn(
-        'text-center font-mono font-bold text-foreground',
-        symbolic ? 'text-[18px] leading-5' : 'text-[12px] leading-4',
+        'text-center text-foreground',
+        symbolic ? 'text-[18px] leading-5' : 'text-[13px] leading-5',
         className,
       )}
       style={TERMINAL_CONTROL_LABEL_STYLE}

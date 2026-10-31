@@ -268,8 +268,7 @@ function setup(agent: ChatAgent) {
     terminalTargets: [
       { key: 'target', hostSessionId: 'host-1', client, session: terminal },
     ],
-    terminalPreferences: { fullscreen: true, xtermCacheCapacity: 3 } as Props['terminalPreferences'],
-    terminalControlUsage: {},
+    terminalPreferences: { fullscreen: false, xtermCacheCapacity: 3 } as Props['terminalPreferences'],
     terminalHistory: [],
     latencyMs: null,
     latencyWarningActive: false,
@@ -1923,6 +1922,16 @@ test('disconnect keeps the new-tab button, tab identities, and scroll container 
   await act(async () => { renderer.update(<SessionScreen {...host.props} />); });
   expect(renderer.root.findByProps({ accessibilityLabel: 'session.newTab' })).toBe(plus);
   expect(plus.props.disabled).toBe(false);
+});
+
+test('full-screen terminals hide the session tab rail and its inset', async () => {
+  const host = setup('codex');
+  await act(async () => {
+    renderer = create(<SessionScreen {...host.props} terminalPreferences={{ ...host.props.terminalPreferences, fullscreen: true }} />);
+  });
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'session.backToHerd' })).toHaveLength(0);
+  expect(renderer.root.findAllByProps({ accessibilityLabel: 'session.newTab' })).toHaveLength(0);
+  expect(ui('TerminalScreen').props.sessionChromeInset).toBe(0);
 });
 
 test('the neighboring browser control keeps its toolbar slot while disconnected', async () => {

@@ -100,7 +100,6 @@ const mockNativeInput = {
 
 const preferences: TerminalPreferences = {
   fullscreen: true,
-  customKeyboardEnabled: false,
   customKeyboardLayout: '[[], []]',
   useModifierKeyIcons: false,
   volumeUpAction: 'none',

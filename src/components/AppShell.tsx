@@ -116,7 +116,6 @@ export function AppShell({
     reopenTerminalOnLaunch,
     agentCommand,
     terminal: terminalPreferences,
-    terminalControlUsage,
   } = effectivePreferences;
   const activeSession = sessions.activeSession;
   // Snapshot refreshes temporarily project connected while SSH remains usable.
@@ -637,7 +636,6 @@ export function AppShell({
                       appBackgroundImageUri={appBackgroundImageUri}
                       appBackgroundDimming={appBackgroundDimming}
                       terminalPreferences={terminalPreferences}
-                      terminalControlUsage={terminalControlUsage}
                       terminalHistory={history.entries}
                       onOpenFiles={remoteFiles.open}
                       composerDraftRequest={remoteFiles.draftRequest?.hostSessionId === activeSession.id ? remoteFiles.draftRequest : undefined}

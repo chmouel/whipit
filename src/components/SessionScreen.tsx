@@ -71,10 +71,8 @@ import {
   resolveTerminalVolumeKeyAction,
   type TerminalVolumeKey,
 } from '@/src/lib/volumeKeys';
-import type {
-  TerminalControlId,
-  TerminalControlUsage,
-} from '../lib/terminalControls';
+import type { TerminalControlId } from '../lib/terminalControls';
+import type { KeyboardAction } from '../lib/terminalKeyboard';
 import {
   activePaneForTerminal,
   agentChatControlState,
@@ -142,6 +140,7 @@ import {
   ResourceEditorField,
   ResourceEditorSheet,
 } from './ResourceEditorSheet';
+import { TabJumpSheet, type TabJumpSection } from './TabJumpSheet';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Text } from './ui/text';
@@ -184,7 +183,6 @@ interface Props {
   ) => void;
   onTerminalChatSelect: (hostSessionId: string, terminalId: string, selected: boolean) => void;
   terminalPreferences: TerminalPreferences;
-  terminalControlUsage: TerminalControlUsage;
   terminalHistory: readonly string[];
   onOpenFiles: (terminalId: string, target?: TranscriptFileLinkTarget) => void;
   composerDraftRequest?: ComposerDraftRequest;
@@ -239,7 +237,6 @@ export function SessionScreen({
   onTerminalFontSizeChange,
   onTerminalChatSelect,
   terminalPreferences,
-  terminalControlUsage,
   terminalHistory,
   onOpenFiles,
   composerStore,
@@ -286,6 +283,7 @@ export function SessionScreen({
   const [appAlert, setAppAlert] = useState<AppAlertContent | null>(null);
   const [linkScanRequest, setLinkScanRequest] = useState(0);
   const [linksOpen, setLinksOpen] = useState(false);
+  const [tabJumpOpen, setTabJumpOpen] = useState(false);
   const [terminalLinks, setTerminalLinks] = useState<string[]>([]);
   const [linksBusy, setLinksBusy] = useState(false);
   const [linksError, setLinksError] = useState<string | null>(null);
@@ -426,9 +424,11 @@ export function SessionScreen({
     session => session.terminalId === terminalState.activeTerminalId,
   );
   const sshTabsVisible = activeTerminalSession?.kind === 'ssh' || !workspace;
-  const sessionChromeInset = terminalSessionChromeHeight(
-    sshTabsVisible ? 0 : panes.length,
-  );
+  // Full-screen terminals drop the tab and pane rails; Whip keys and Android back still navigate.
+  const sessionChromeShown = !terminalPreferences.fullscreen;
+  const sessionChromeInset = sessionChromeShown
+    ? terminalSessionChromeHeight(sshTabsVisible ? 0 : panes.length)
+    : 0;
   const transcriptTabTitles = useTranscriptTabTitles(
     hostSessionId,
     selectableResources.panes,
@@ -1275,13 +1275,16 @@ export function SessionScreen({
         : terminalPreferences.volumeDownAction;
     const action = resolveTerminalVolumeKeyAction(configured, key);
     if (action?.type !== 'terminal-tab') return;
+    stepTab(action.direction);
+  };
+  function stepTab(direction: -1 | 1) {
     const context = tabNavigationContextRef.current;
     const currentIndex = context.tabs.findIndex(
       item => item.id === context.selectedId,
     );
-    const targetTab = context.tabs[currentIndex + action.direction];
+    const targetTab = context.tabs[currentIndex + direction];
     if (targetTab) chooseTabRef.current(targetTab);
-  };
+  }
   const volumeKeyHandlerRef = useRef(handleVolumeKey);
   volumeKeyHandlerRef.current = handleVolumeKey;
 
@@ -1304,6 +1307,50 @@ export function SessionScreen({
       'session-pane-focus',
     );
   };
+
+  const handleKeyboardAction = (action: KeyboardAction) => {
+    if (action === 'new_tab') {
+      if (client && !busy) setEditorMode(sshTabsVisible ? 'ssh-tab' : 'tab');
+    } else if (action === 'goto') {
+      setTabJumpOpen(true);
+    } else if (action === 'next_pane') {
+      if (sshTabsVisible || panes.length < 2) return;
+      const index = panes.findIndex(pane => pane.pane_id === selectedPane?.pane_id);
+      choosePane(panes[(index + 1) % panes.length]);
+    } else {
+      stepTab(action === 'prev_tab' ? -1 : 1);
+    }
+  };
+
+  const tabJumpSections: TabJumpSection[] = !tabJumpOpen
+    ? []
+    : sshTabsVisible
+      ? [{
+          id: 'ssh',
+          items: visibleTabs.map(item => ({
+            id: item.id,
+            label: item.label,
+            agentStatus: item.agentStatus,
+            current: item.id === selectedVisibleTabId,
+            onSelect: () => chooseVisibleTab(item),
+          })),
+        }]
+      : [...snapshot.workspaces]
+          .sort((a, b) => a.number - b.number)
+          .map(item => ({
+            id: item.workspace_id,
+            title: item.label,
+            items: selectableResources.tabs
+              .filter(tab => tab.workspace_id === item.workspace_id)
+              .sort((a, b) => a.number - b.number)
+              .map(tab => ({
+                id: tab.tab_id,
+                label: transcriptTabTitles.label(hostSessionId, tab, selectableResources.panes, terminalState.activeTerminalId),
+                agentStatus: tab.agent_status,
+                current: tab.tab_id === selectedTab?.tab_id,
+                onSelect: () => chooseTab(tab),
+              })),
+          }));
 
   const create = async () => {
     if (!client) return;
@@ -1532,6 +1579,7 @@ export function SessionScreen({
         style={{ bottom: terminalControlBarHeight }}
       >
         <SessionChromeRow
+          shown={sessionChromeShown}
           keyboardHeight={keyboardHeight}
           bottomSafeAreaInset={safeAreaInsets.bottom}
           className="h-[55px] flex-row border-b border-border bg-transparent"
@@ -1706,6 +1754,7 @@ export function SessionScreen({
 
         {!sshTabsVisible && selectedTab && panes.length > 1 && (
           <SessionChromeRow
+            shown={sessionChromeShown}
             keyboardHeight={keyboardHeight}
             bottomSafeAreaInset={safeAreaInsets.bottom}
             className="h-11 flex-row border-b border-border bg-transparent">
@@ -1790,7 +1839,6 @@ export function SessionScreen({
             latencyWarningActive={latencyWarningActive}
             visible={visible && (Boolean(activeTarget) || !client)}
             preferences={terminalPreferences}
-            controlUsage={terminalControlUsage}
             historyEntries={terminalHistory}
             composerStore={composerStore}
             composerDraftRequest={composerDraftRequest}
@@ -2006,6 +2054,7 @@ export function SessionScreen({
               setLinksBusy(false);
             }}
             onControlUse={onTerminalControlUse}
+            onKeyboardAction={handleKeyboardAction}
             onHistoryEntry={onTerminalHistoryEntry}
             onInteraction={registerInteraction}
             onFontSizeChange={(target, fontSize) => {
@@ -2097,6 +2146,11 @@ export function SessionScreen({
           integration={chatOpen.notice?.type === 'integration' ? chatOpen.notice.integration : null}
           onCancel={chatOpen.dismissNotice}
           onInstall={chatOpen.install}
+        />
+        <TabJumpSheet
+          visible={tabJumpOpen}
+          sections={tabJumpSections}
+          onClose={() => setTabJumpOpen(false)}
         />
         <AgentIdentityWarningSheet
           warning={chatOpen.notice?.type === 'identity' ? chatOpen.notice : null}
@@ -2301,7 +2355,8 @@ export function SessionScreen({
   );
 }
 
-function SessionChromeRow({ keyboardHeight, bottomSafeAreaInset, className, children }: {
+function SessionChromeRow({ shown, keyboardHeight, bottomSafeAreaInset, className, children }: {
+  shown: boolean;
   keyboardHeight: SharedValue<number>;
   bottomSafeAreaInset: number;
   className: string;
@@ -2316,5 +2371,6 @@ function SessionChromeRow({ keyboardHeight, bottomSafeAreaInset, className, chil
       importantForAccessibility: hidden.value ? 'no-hide-descendants' as const : 'auto' as const,
     };
   });
+  if (!shown) return null;
   return <Animated.View className={className} style={style} animatedProps={animatedProps}>{children}</Animated.View>;
 }
