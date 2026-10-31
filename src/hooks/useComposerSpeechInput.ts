@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { Platform } from 'react-native';
 
@@ -16,7 +17,8 @@ export function useComposerSpeechInput(options: Options) {
   const current = useRef(options);
   current.current = options;
   const snapshot = useSyncExternalStore(composerSpeechInput.subscribe, composerSpeechInput.getSnapshot);
-  const { owner, enabled } = options;
+  const { owner } = options;
+  const enabled = options.enabled && !isPersonalBuild();
   useEffect(() => {
     if (!enabled) composerSpeechInput.cancel(owner);
     return () => composerSpeechInput.cancel(owner);

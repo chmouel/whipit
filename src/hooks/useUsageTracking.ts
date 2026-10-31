@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import { useEffect } from 'react';
 import { Directory, File, Paths } from 'expo-file-system';
 import { AppState } from 'react-native';
@@ -14,6 +15,7 @@ import {
 /** Only platform lifecycle and the storage location cross into the Rust counter. */
 export function useUsageTracking(): void {
   useEffect(() => {
+    if (isPersonalBuild()) return;
     const start = () => {
       try {
         const directory = new Directory(Paths.document, 'usage');

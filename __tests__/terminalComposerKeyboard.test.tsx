@@ -1,3 +1,4 @@
+jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: null } }));
 import { useContext, useImperativeHandle, type ComponentProps, type ReactNode, type Ref } from 'react';
 import { act, create, type ReactTestInstance, type ReactTestRenderer } from 'react-test-renderer';
 import * as Haptics from 'expo-haptics';
@@ -173,6 +174,7 @@ const props: Props = {
   compact: true,
   preferences: {
     fullscreen: true,
+    customKeyboardLayout: '[["keyboard","esc","history","text_input"],["ctrl","paste","find","arrow_up"]]',
     useModifierKeyIcons: false,
     volumeUpAction: 'none',
     volumeDownAction: 'none',
@@ -186,7 +188,6 @@ const props: Props = {
     backgroundImageUri: null,
     backgroundDimming: 0,
   },
-  controlUsage: {},
   historyEntries: [],
   chatViewEnabled: false,
   onControlUse: jest.fn(),
@@ -1271,4 +1272,44 @@ test('tab switching with an open direct keyboard preserves geometry and hides ch
   expect(Keyboard.dismiss).not.toHaveBeenCalled();
   expect(onControlBarHeightChange).not.toHaveBeenCalled();
   expect(renderer.root.findByProps({ className: 'absolute inset-x-0 bottom-0 z-30' }).props.style.transform[0].translateY).toBe(-keyboardHeight);
+});
+
+
+test('custom macros bypass modifiers while built-in keys retain modifier behavior', async () => {
+  const writeToTerminal = jest.fn(async () => undefined);
+  const activeTarget = { ...target, client: { terminal: { writeToTerminal } } } as unknown as Props['targets'][number];
+  mount({ activeTarget, targets: [activeTarget], preferences: { ...props.preferences, customKeyboardLayout: '[["ctrl",{"label":"TX","send":"`x"}],["tab"]]' } });
+  await press('ctrlModifier');
+  const macro = renderer.root.find(node => String(node.type) === 'Button' && node.props.accessibilityLabel === 'TX');
+  await act(async () => macro.props.onPress());
+  expect(terminalHandle.input).toHaveBeenLastCalledWith('`x', true);
+  await act(async () => ui('TerminalRendererHost').props.onInput(activeTarget, '`x', true));
+  expect(writeToTerminal).toHaveBeenCalledWith('terminal-1', '`x');
+  await act(async () => ui('TerminalRendererHost').props.onInput(activeTarget, 'c', false));
+  expect(writeToTerminal).toHaveBeenLastCalledWith('terminal-1', '\u0003');
+});
+
+test('legacy herdr prefix keys run Whip actions instead of sending the prefix', async () => {
+  const onKeyboardAction = jest.fn();
+  mount({ onKeyboardAction, preferences: { ...props.preferences, customKeyboardLayout: '[[{"label":"TC","send":"`c"},"goto"],[]]' } });
+  await act(async () => button('keyboardAction.new_tab').props.onPress());
+  await act(async () => button('keyboardAction.goto').props.onPress());
+  expect(onKeyboardAction.mock.calls).toEqual([['new_tab'], ['goto']]);
+  expect(terminalHandle.input).not.toHaveBeenCalled();
+});
+
+test('an unreadable stored layout falls back to the default keyboard', () => {
+  mount({ preferences: { ...props.preferences, customKeyboardLayout: '{' } });
+  expect(button('snippets')).toBeDefined();
+  expect(button('homeKey')).toBeDefined();
+});
+
+test('personal build omits voice keys from the custom keyboard', () => {
+  const constants = jest.requireMock<{ default: { expoConfig: unknown } }>('expo-constants').default;
+  constants.expoConfig = { extra: { personalBuild: true } };
+  try {
+    mount({ preferences: { ...props.preferences, customKeyboardLayout: '[["voice_kb","esc"],["voice_input","enter"]]' } });
+    expect(renderer.root.findAll(node => String(node.type) === 'Button' && node.props.accessibilityLabel === 'terminal.voice.keyboard')).toHaveLength(0);
+    expect(button('escapeKey')).toBeDefined();
+  } finally { constants.expoConfig = null; }
 });

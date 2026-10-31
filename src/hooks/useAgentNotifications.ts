@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import { isRemoteNotification, remoteNotificationTarget } from '../services/remoteNotifications';
 import { notificationRegistrationProof } from '../lib/notificationRegistration';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -31,6 +32,7 @@ export function useAgentNotifications() {
       const trigger = request.trigger;
       const fromPush = trigger !== null && 'type' in trigger && trigger.type === 'push';
       if (fromPush || isRemoteNotification(request.content.data)) {
+        if (isPersonalBuild()) return;
         const target = await remoteNotificationTarget(request.content.data || {}, request.identifier);
         if (!target) throw new Error('Remote notification is missing authenticated data');
         value = {...value, notification: {...value.notification, request: {...request, content: {...request.content, data: {hostId: target.hostId, paneId: target.paneId, remoteDeviceId: target.remoteDeviceId}}}}};

@@ -74,6 +74,7 @@ module.exports = ({ config }) => {
         (process.env.NODE_ENV === 'production'
           ? null
           : DEVELOPMENT_REVENUECAT_TEST_PUBLIC_SDK_KEY),
+      personalBuild: process.env.WHIP_PERSONAL_BUILD === '1' && !distributionChannel(process.env.WHIP_DISTRIBUTION_CHANNEL),
       distributionChannel: distributionChannel(
         process.env.WHIP_DISTRIBUTION_CHANNEL,
       ),

@@ -61,3 +61,11 @@ describe('development membership rollout', () => {
     },
   );
 });
+
+
+test('a personal build keeps features enabled without contacting billing even with developer options', () => {
+  expect(billingRolloutPolicy(null, true, true)).toEqual({
+    billingEnabled: false, developerOptionsAvailable: true, developerOptionsEnabled: true,
+  });
+  expect(billingRolloutPolicy('google-play', true, true).billingEnabled).toBe(true);
+});

@@ -1,3 +1,4 @@
+jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: null } }));
 import React from 'react';
 import renderer, { act } from 'react-test-renderer';
 import * as Notifications from 'expo-notifications';

@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import {
   notificationRuntimes as runtimes,
   subscribeNotificationRuntimeChanges,
@@ -135,6 +136,7 @@ async function relay(
   expoToken?: string,
   challenge?: string,
 ): Promise<void> {
+  if (isPersonalBuild()) throw new Error('Remote notifications are disabled in this build');
   const response = await fetch(
     `${registration.relayUrl}/v1/devices/${registration.deviceId}`,
     {
@@ -214,6 +216,7 @@ export function subscribeRemoteNotifications(listener: () => void): () => void {
 export async function remoteNotificationStates(): Promise<
   RemoteNotificationState[]
 > {
+  if (isPersonalBuild()) return [];
   return (await load()).map(r => ({
     hostId: r.hostId,
     relayUrl: r.relayUrl,
@@ -283,6 +286,7 @@ export function setRemoteNotificationEncryption(hostId: string, endToEndEncrypte
 }
 
 function connectedRuntime(hostId: string) {
+  if (isPersonalBuild()) throw new Error('Remote notifications are disabled in this build');
   const runtime = runtimes.get(hostId);
   if (!runtime)
     throw new Error(
@@ -294,6 +298,7 @@ function connectedRuntime(hostId: string) {
 export async function notificationPluginState(
   hostId: string,
 ): Promise<NotificationPluginState | undefined> {
+  if (isPersonalBuild()) return undefined;
   const runtime = runtimes.get(hostId);
   return runtime
     ? (JSON.parse(
@@ -360,7 +365,7 @@ export function uninstallNotificationPlugin(hostId: string): Promise<void> {
 }
 subscribeNotificationRuntimeChanges((hostId, runtime) => {
   for (const listener of listeners) listener();
-  if (!runtime) return;
+  if (!runtime || isPersonalBuild()) return;
   bestEffortCleanup(
     serial(async () => {
       const values = await load();
@@ -393,6 +398,7 @@ export function enableRemoteNotifications(
   relayUrl: string,
   endToEndEncrypted?: boolean,
 ): Promise<void> {
+  if (isPersonalBuild()) return Promise.reject(new Error('Remote notifications are disabled in this build'));
   return serial(async () => {
     const runtime = runtimes.get(hostId);
     if (!runtime)
@@ -503,6 +509,7 @@ async function disableRegistration(
 }
 
 export async function renewNotificationLeases(): Promise<void> {
+  if (isPersonalBuild()) return;
   const registrations = await load();
   await Promise.all(
     registrations
@@ -525,6 +532,7 @@ export async function renewNotificationLeases(): Promise<void> {
   );
 }
 export function refreshRemotePushTokens(): Promise<void> {
+  if (isPersonalBuild()) return Promise.resolve();
   return serial(async () => {
     const registrations = (await load()).filter(r => r.enabled);
     if (!registrations.length) return;
@@ -539,6 +547,7 @@ export function remoteNotificationTarget(
   data: Record<string, unknown>,
   notificationId: string,
 ): Promise<AgentNotificationTarget | null> {
+  if (isPersonalBuild()) return Promise.resolve(null);
   return serial(async () => {
     const payload = data[REMOTE_FIELD];
     if (!payload) return null;
@@ -587,6 +596,7 @@ export function verifyRemoteNotificationHost(
   deviceId: string,
   runtime: import('./notificationRuntimeRegistry').NotificationRuntime,
 ): Promise<void> {
+  if (isPersonalBuild()) return Promise.reject(new Error('Remote notifications are disabled in this build'));
   return serial(async () => {
     const registration = (await load()).find(
       r => r.enabled && r.hostId === hostId && r.deviceId === deviceId,

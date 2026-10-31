@@ -1,3 +1,4 @@
+import { isPersonalBuild } from '../billing/distribution';
 import { evaluateAppUpdate, type AppUpdateCheck } from 'react-native-whip-ssh';
 
 const WHIP_GITHUB_REPOSITORY = 'kosumic/whip';
@@ -10,6 +11,7 @@ export async function checkGithubUpdate(
   installedVersion: string,
   signal: AbortSignal,
 ): Promise<AppUpdateCheck> {
+  if (isPersonalBuild()) throw new Error('Update checks are disabled in this build');
   const response = await fetch(LATEST_RELEASE_API_URL, {
     headers: { Accept: 'application/vnd.github+json' },
     cache: 'no-store',

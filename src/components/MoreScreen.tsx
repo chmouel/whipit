@@ -16,6 +16,7 @@ import {
 import { GlassSurface } from './GlassSurface';
 import { Text } from './ui/text';
 import { hasCapability } from '../billing/capabilities';
+import { isPersonalBuild } from '../billing/distribution';
 import type { WhipTier } from '../billing/tiers';
 import type { WhipEntitlementsController } from '../billing/useWhipEntitlements';
 import { MembershipSection } from './MembershipSection';
@@ -59,11 +60,11 @@ export function MoreScreen(props: Props) {
           />
         ) : null}
         <AboutSection onOpenLicenses={props.onOpenLicenses} />
-        {props.developerOptionsEnabled ? (
+        {props.developerOptionsEnabled && !isPersonalBuild() ? (
           <TipJarSection />
         ) : null}
-        <UsageSection />
-        {props.developerOptionsEnabled ? <FeedbackSection /> : null}
+        {!isPersonalBuild() && <UsageSection />}
+        {props.developerOptionsEnabled && !isPersonalBuild() ? <FeedbackSection /> : null}
         <SettingsSection
           alertsEnabled={props.alertsEnabled}
           agentAlertLevel={props.agentAlertLevel}

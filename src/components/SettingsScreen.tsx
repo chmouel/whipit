@@ -2,7 +2,7 @@ import Slider from '@react-native-community/slider';
 import { BellRing, Bot, CaseSensitive, Check, ChevronDown, ChevronRight, ChevronUp, Code2, Fingerprint, Gamepad2, History, Image as ImageIcon, ImagePlus, Info, KeyRound, Minus, Monitor, Moon, Palette, Play, Plus, Server, ShieldCheck, SquareTerminal, Sun, Trash2, Volume1, Volume2, X, type LucideIcon } from 'lucide-react-native';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import Clipboard from '@react-native-clipboard/clipboard';
-import { Alert, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type ViewInstance } from 'react-native';
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type ViewInstance } from 'react-native';
 import Animated, {
   cancelAnimation,
   Easing,
@@ -20,6 +20,7 @@ import {
 import { deviceLanguage } from '@/src/i18n';
 import { useSectionExpansion } from '@/src/hooks/useSectionExpansion';
 import { terminalFontFamily } from '@/src/lib/terminalFonts';
+import { DEFAULT_CUSTOM_TERMINAL_KEYBOARD, parseTerminalKeyboard } from '@/src/lib/terminalKeyboard';
 import {
   APP_FONT_SIZE_STEP_PERCENT,
   MAX_APP_FONT_SIZE_PERCENT,
@@ -55,6 +56,7 @@ import { removeAppBackgroundImage, selectAppBackgroundImage } from '@/src/servic
 import { openNotificationSettings } from '@/src/services/notificationSettings';
 import { removeTerminalBackgroundImage, selectTerminalBackgroundImage } from '@/src/services/terminalBackground';
 import { getBillingRolloutPolicy } from '../billing/rollout';
+import { isPersonalBuild } from '../billing/distribution';
 import { hapticPress, IconButton } from './app-ui';
 import { ConfirmationPopup } from './ConfirmationPopup';
 import { ChatCacheSetting } from './ChatCacheSetting';
@@ -223,6 +225,7 @@ function useBackgroundImageActions({
 }
 
 export function SettingsSection(props: SettingsSectionProps) {
+  const { top, bottom } = useSafeAreaInsets();
   const { expanded: notificationsExpanded, toggleExpanded: toggleNotifications } = useSectionExpansion('notifications', true);
   const { expanded: securityExpanded, toggleExpanded: toggleSecurity } = useSectionExpansion('security', true);
   const { expanded: appearanceExpanded, toggleExpanded: toggleAppearance } = useSectionExpansion('appearance', true);
@@ -233,6 +236,9 @@ export function SettingsSection(props: SettingsSectionProps) {
   const [doubleTapExpanded, setDoubleTapExpanded] = useState(false);
   const [volumeKeyEditor, setVolumeKeyEditor] = useState<TerminalVolumeKey | null>(null);
   const [historyManagerOpen, setHistoryManagerOpen] = useState(false);
+  const [keyboardEditorOpen, setKeyboardEditorOpen] = useState(false);
+  const [keyboardDraft, setKeyboardDraft] = useState('');
+  const [keyboardError, setKeyboardError] = useState('');
   const { t } = useTranslation();
   const appBackground = useBackgroundImageActions({
     uri: props.appBackgroundImageUri,
@@ -303,7 +309,7 @@ export function SettingsSection(props: SettingsSectionProps) {
           onPress={props.onTestAgentNotification}
           divided
         /> : null}
-        <SettingRow title={t('settings.speakChanges')} copy={t('settings.speakChangesCopy')} value={props.ttsEnabled} onChange={props.onTtsChange} divided />
+        {!isPersonalBuild() && <SettingRow title={t('settings.speakChanges')} copy={t('settings.speakChangesCopy')} value={props.ttsEnabled} onChange={props.onTtsChange} divided />}
         <ActionRow
           title={t('settings.changeNotificationSettings')}
           copy={t('settings.changeNotificationSettingsCopy')}
@@ -464,6 +470,7 @@ export function SettingsSection(props: SettingsSectionProps) {
         />
         <SettingRow title={t('settings.keepScreenOn')} copy={t('settings.keepScreenOnCopy')} value={props.keepScreenOn} onChange={props.onKeepScreenOnChange} divided />
         <SettingRow title={t('settings.reopenTerminal')} copy={t('settings.reopenTerminalCopy')} value={props.reopenTerminalOnLaunch} onChange={props.onReopenTerminalOnLaunchChange} divided />
+        <ActionRow title={t('settings.editCustomKeyboard')} copy={t('settings.editCustomKeyboardCopy')} icon={Code2} onPress={() => { setKeyboardDraft(props.terminalPreferences.customKeyboardLayout); setKeyboardError(''); setKeyboardEditorOpen(true); }} divided />
         <SettingRow title={t('settings.useModifierKeyIcons')} copy={t('settings.useModifierKeyIconsCopy')} value={props.terminalPreferences.useModifierKeyIcons} onChange={value => props.onTerminalPreferencesChange({ ...props.terminalPreferences, useModifierKeyIcons: value })} divided />
         <ActionRow
           title={t('settings.terminalHistory')}
@@ -588,6 +595,25 @@ export function SettingsSection(props: SettingsSectionProps) {
           setVolumeKeyEditor(null);
         }}
       /> : null}
+      <Modal animationType="slide" visible={keyboardEditorOpen} onRequestClose={() => setKeyboardEditorOpen(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="flex-1 bg-background px-4" style={{ paddingTop: Math.max(top, 16), paddingBottom: Math.max(bottom, 16) }}>
+          <Text className="text-lg font-bold text-foreground">{t('settings.editCustomKeyboard')}</Text>
+          <Text className="mt-2 text-muted-foreground">{t('settings.editCustomKeyboardCopy')}</Text>
+          <View className="mt-3 flex-row flex-wrap gap-2">
+            <Button variant="secondary" onPress={() => { setKeyboardDraft(DEFAULT_CUSTOM_TERMINAL_KEYBOARD); setKeyboardError(''); }}><Text>{t('settings.restoreKeyboardDefault')}</Text></Button>
+            <Button variant="secondary" onPress={() => setKeyboardEditorOpen(false)}><Text>{t('common.cancel')}</Text></Button>
+            <Button onPress={() => {
+              try {
+                parseTerminalKeyboard(keyboardDraft);
+                props.onTerminalPreferencesChange({ ...props.terminalPreferences, customKeyboardLayout: keyboardDraft });
+                setKeyboardEditorOpen(false);
+              } catch (error) { setKeyboardError(error instanceof Error ? error.message : String(error)); }
+            }}><Text>{t('common.save')}</Text></Button>
+          </View>
+          <Input accessibilityLabel={t('settings.customKeyboardJson')} className="mt-3 flex-1 font-mono" multiline textAlignVertical="top" autoCapitalize="none" autoCorrect={false} value={keyboardDraft} onChangeText={value => { setKeyboardDraft(value); setKeyboardError(''); }} />
+          {keyboardError ? <Text accessibilityRole="alert" className="mt-2 text-destructive">{keyboardError}</Text> : null}
+        </KeyboardAvoidingView>
+      </Modal>
       <TerminalHistoryManager
         entries={props.terminalHistory}
         visible={historyManagerOpen}

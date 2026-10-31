@@ -6,6 +6,9 @@ import {
 } from 'react-native-whip-ssh';
 
 import { useUsageTracking } from '../src/hooks/useUsageTracking';
+import { isPersonalBuild } from '../src/billing/distribution';
+
+jest.mock('../src/billing/distribution', () => ({ isPersonalBuild: jest.fn(() => false) }));
 
 jest.mock('react-native-css-interop/jsx-runtime', () =>
   jest.requireActual('react/jsx-runtime'),
@@ -80,4 +83,12 @@ it('starts inactive during a background launch and retries failed initialization
   transition('active');
   expect(initializeUsageTracking).toHaveBeenCalledTimes(2);
   expect(setUsageForeground).toHaveBeenLastCalledWith(true);
+});
+
+
+it('does not start local usage tracking in the personal build', () => {
+  jest.mocked(isPersonalBuild).mockReturnValueOnce(true);
+  act(() => { renderer = create(<Harness />); });
+  expect(initializeUsageTracking).not.toHaveBeenCalled();
+  expect(AppState.addEventListener).not.toHaveBeenCalled();
 });

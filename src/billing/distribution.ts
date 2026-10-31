@@ -51,3 +51,8 @@ export function isNativeStoreChannel(
 ): channel is 'app-store' | 'google-play' {
   return channel === 'app-store' || channel === 'google-play';
 }
+
+export function isPersonalBuild(): boolean {
+  const extra = Constants.expoConfig?.extra;
+  return isUnknownRecord(extra) && extra.personalBuild === true && billingDistributionFromExtra(extra).channel === null;
+}

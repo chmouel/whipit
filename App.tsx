@@ -34,6 +34,7 @@ import { useStartupStorage } from './src/hooks/useStartupStorage';
 import { useTerminalHistory } from './src/hooks/useTerminalHistory';
 import { useTerminalSessions } from './src/hooks/useTerminalSessions';
 import { getBillingRolloutPolicy } from './src/billing/rollout';
+import { isPersonalBuild } from './src/billing/distribution';
 import { useWhipEntitlements } from './src/billing/useWhipEntitlements';
 import { LAUNCH_BACKGROUND_COLOR } from './src/lib/launchScreen.cjs';
 
@@ -144,7 +145,7 @@ function AppContent() {
     agentAlertLevel: preferences.value.agentAlertLevel,
     persistentAlertDurationSeconds:
       preferences.value.persistentAlertDurationSeconds,
-    ttsEnabled: preferences.value.ttsEnabled,
+    ttsEnabled: preferences.value.ttsEnabled && !isPersonalBuild(),
     appAccessLocked: security.locked,
     hostsVisible: navigation.state.tab === 'hosts',
     t,

@@ -34,7 +34,7 @@ jest.mock('../src/services/operationalDiagnostics', () => ({
 
 let billing: typeof import('../src/services/revenueCat');
 let purchases: jest.Mocked<typeof Purchases>;
-let extra: { distributionChannel: string | null };
+let extra: { distributionChannel: string | null; personalBuild?: boolean };
 let platform: { OS: string };
 
 const storeProduct = {
@@ -156,4 +156,14 @@ test('keeps feedback products separate from the general tip jar', async () => {
     [...billing.TIP_PRODUCT_IDS],
     'NON_SUBSCRIPTION',
   );
+});
+
+
+test('personal build never initializes RevenueCat', async () => {
+  extra.distributionChannel = null;
+  extra.personalBuild = true;
+  try {
+    await expect(billing.initializeRevenueCat()).resolves.toBe(false);
+    expect(purchases.configure).not.toHaveBeenCalled();
+  } finally { extra.personalBuild = false; }
 });

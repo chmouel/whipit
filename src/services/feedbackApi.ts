@@ -1,4 +1,5 @@
 import Constants from 'expo-constants';
+import { isPersonalBuild } from '../billing/distribution';
 
 import {
   operationalParseErrorDetails,
@@ -17,6 +18,7 @@ export interface SubmittedFeedbackRequest {
 const REQUEST_TIMEOUT_MS = 15_000;
 
 function apiBaseUrl(): string | null {
+  if (isPersonalBuild()) return null;
   const extra: unknown = Constants.expoConfig?.extra;
   const value = isUnknownRecord(extra) ? extra.feedbackApiUrl : undefined;
   return typeof value === 'string' && value.trim()

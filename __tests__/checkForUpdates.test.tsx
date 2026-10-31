@@ -1,10 +1,11 @@
+jest.mock('expo-constants', () => ({ __esModule: true, default: { expoConfig: null } }));
 import { act, create, type ReactTestRenderer } from 'react-test-renderer';
 import { Linking } from 'react-native';
 import { evaluateAppUpdate } from 'react-native-whip-ssh';
 
 import { CheckForUpdates } from '../src/components/CheckForUpdates';
 import { en } from '../src/locales/en';
-import { WHIP_LATEST_RELEASE_URL } from '../src/services/githubReleases';
+import { checkGithubUpdate, WHIP_LATEST_RELEASE_URL } from '../src/services/githubReleases';
 
 jest.mock('react-native-css-interop/jsx-runtime', () => jest.requireActual('react/jsx-runtime'));
 jest.mock('react-native', () => ({
@@ -140,4 +141,14 @@ test('aborts an outstanding request when the component unmounts', async () => {
   act(() => view.unmount());
   await act(async () => { await pending; });
   expect(signal.aborted).toBe(true);
+});
+
+
+test('personal build never sends an update request', async () => {
+  const constants = jest.requireMock<{ default: { expoConfig: unknown } }>('expo-constants').default;
+  constants.expoConfig = { extra: { personalBuild: true } };
+  try {
+    await expect(checkGithubUpdate('1.0.0', new AbortController().signal)).rejects.toThrow('disabled');
+    expect(fetchMock).not.toHaveBeenCalled();
+  } finally { constants.expoConfig = null; }
 });

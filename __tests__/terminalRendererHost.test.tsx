@@ -100,6 +100,7 @@ const mockNativeInput = {
 
 const preferences: TerminalPreferences = {
   fullscreen: true,
+  customKeyboardLayout: '[[], []]',
   useModifierKeyIcons: false,
   volumeUpAction: 'none',
   volumeDownAction: 'none',
@@ -532,6 +533,14 @@ describe('TerminalRendererHost lifecycle', () => {
     }
     expect(eventCallbacks.onInput).toHaveBeenCalledTimes(7);
     expect(injected).toEqual([]);
+  });
+
+  test('raw macro enters the ordered input queue unchanged', async () => {
+    const scroll = { offset_from_bottom: 0, max_offset_from_bottom: 0, viewport_rows: 24 };
+    const target = createTarget('term-1', createClient({ 'term-1': scroll }), scroll);
+    const { handle, eventCallbacks } = await mountReadyHost(target);
+    await act(async () => { handle.current!.input('`c', true); });
+    expect(eventCallbacks.onInput).toHaveBeenCalledWith(target, '`c', true);
   });
 
   test('native typing, rail Tab and paste stay ordered while an earlier write is pending', async () => {

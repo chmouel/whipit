@@ -229,7 +229,7 @@ See the [browser and device tool reference](docs/reverse-control-browser.md), [a
 - Open a plain SSH login shell when Herdr is stopped, unavailable, or not installed yet.
 - Open multiple independent SSH shell tabs on the same host, using the same tab controls to create, switch, rename, and close them.
 - Keep multiple terminal surfaces warm while switching or swiping between tabs, with a buffered composer, ANSI colors, modifier keys, touch scrolling, Page Up/Down, selection, live resizing, and configurable appearance.
-- Use controls that adapt to keyboard visibility, with text selection, copy feedback, and **Add to chat composer** for selected terminal text.
+- Use controls that adapt to keyboard visibility, with text selection, copy feedback, and **Add to chat composer** for selected terminal text. The terminal keyboard is a Haven-style two-row bar with column-aligned keys and an arrow/Home/End cursor block; edit its Haven-compatible JSON layout in Settings. Custom keys send their configured text verbatim. Because tmux-style prefix keys never reach Herdr, the `new_tab`, `prev_tab`, `next_tab`, `next_pane` and `goto` keys (TC/TP/TN/TO/TG) drive Whip’s own tab navigation instead, with `goto` opening a filterable jump list of every workspace’s tabs; the Voice key opens composer dictation and Snippets lists the layout’s custom keys.
 - Keep reading an open Herdr pane when its live connection drops: Whip switches the terminal to a local, read-only virtual Herdr backend backed by a bounded cache of recent ANSI output. Arrow keys, Page Up/Down, Home, End, and touch scrolling remain available while terminal writes stay disabled.
 - Queue native-composer submissions in a per-terminal outbox while offline, review or move them back into the composer, and send them in order when that terminal reconnects.
 - Reuse persistent input history, copy previous commands with a long press, and configure volume-key and double-tap actions and the number of cached xterm surfaces.
@@ -260,7 +260,7 @@ See the [browser and device tool reference](docs/reverse-control-browser.md), [a
 
 ### Make it yours
 
-- Hide the status bar across the app or while a terminal is open with Rancher fullscreen settings.
+- Hide the status bar across the app or while a terminal is open with Rancher fullscreen settings. A full-screen terminal also hides the tab and pane bars; use the TC/TP/TN/TG keys and Android back to navigate.
 - Configure local agent alerts with notifications, vibration, and optional speech, or enable [push notifications](#get-push-notifications) per saved host.
 - Set the duration of background agent alerts, dismiss active alerts by returning to Whip, and customize terminal gestures, controls, history, fonts, and cached sessions.
 - Use the app in English, French, Japanese, Spanish, Simplified Chinese, or Traditional Chinese, with system, light, GitHub Light, dark, and Tokyo Night appearance options.

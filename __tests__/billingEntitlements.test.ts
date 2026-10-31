@@ -186,6 +186,7 @@ describe('Whip billing entitlements', () => {
       lastTab: 'hosts',
       terminal: {
         fullscreen: true,
+        customKeyboardLayout: '[[], []]',
         useModifierKeyIcons: false,
         volumeUpAction: 'none',
         volumeDownAction: 'none',
